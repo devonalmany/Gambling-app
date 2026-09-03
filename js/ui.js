@@ -36,9 +36,22 @@ export function showModal(innerHtml, { closable = true } = {}) {
 }
 export function closeModal() { qs('#modal-root').innerHTML = ''; }
 
+export function showEventModal(event) {
+  if (!event) return;
+  const cls = event.type === 'bad' ? 'event-bad' : event.type === 'good' ? 'event-good' : 'event-neutral';
+  showModal(`
+    <div class="event-modal ${cls}">
+      <h3>${event.title}</h3>
+      <p>${event.text}</p>
+      <button class="btn primary" id="event-ok">Continue</button>
+    </div>
+  `);
+  qs('#event-ok').addEventListener('click', closeModal);
+}
+
 // ---------------------------------------------------------------- Screens
 const screens = {}; // name -> { render, onShow }
-let currentScreen = 'floor';
+let currentScreen = 'city';
 
 export function registerScreen(name, handlers) { screens[name] = handlers; }
 
@@ -54,15 +67,16 @@ export function showScreen(name) {
   if (screens[name].onShow) screens[name].onShow(container);
 }
 
-export function refreshCurrentScreen() {
-  showScreen(currentScreen);
-}
+export function refreshCurrentScreen() { showScreen(currentScreen); }
 
 // ---------------------------------------------------------------- HUD
+function needBarClass(v) { return v <= 15 ? 'crit' : v <= 40 ? 'low' : 'ok'; }
+
 export function renderHUD() {
+  qs('#hud-day').textContent = `Day ${state.run.day} · ${state.blockName}`;
   qs('#hud-cash').textContent = fmtMoney(state.netWorth);
   qs('#hud-status').textContent = state.tier.name;
-  qs('#hud-style').textContent = state.run.stylePoints.toLocaleString();
+  qs('#hud-battery').textContent = `${Math.round(state.run.phoneBattery)}%`;
 
   const idx = tierIndex(state.tier.id);
   const next = STATUS_TIERS[idx + 1];
@@ -77,16 +91,26 @@ export function renderHUD() {
     fill.style.width = '100%';
     label.textContent = 'Max Tier Reached';
   }
+
+  const needs = state.run.needs;
+  for (const key of ['hunger', 'energy', 'hygiene', 'warmth']) {
+    const bar = qs(`#need-${key} .need-fill`);
+    const wrap = qs(`#need-${key}`);
+    if (bar) {
+      bar.style.width = `${needs[key]}%`;
+      bar.className = `need-fill ${needBarClass(needs[key])}`;
+    }
+    if (wrap) wrap.title = `${key[0].toUpperCase()}${key.slice(1)}: ${Math.round(needs[key])}%`;
+  }
 }
 
 state.addEventListener('change', renderHUD);
 state.addEventListener('achievement', (e) => {
   const a = e.detail;
+  if (!a) return;
   toast(`<div class="achv-item"><span class="icon">${a.icon}</span><div><strong>Achievement Unlocked</strong><br>${a.name}</div></div>`, 'win', 5000);
 });
 
-// ---------------------------------------------------------------- Locked gate helper
-export function tierGateBanner(reqTierId) {
-  const reqTier = STATUS_TIERS.find(t => t.id === reqTierId);
-  return `<div class="panel"><h3>🔒 Locked</h3><p class="subtle">Reach <strong>${reqTier.name}</strong> status (net worth ${fmtMoney(reqTier.min)}) to unlock this.</p></div>`;
+export function lockedBanner(reason) {
+  return `<div class="panel"><h3>🔒 Not Yet</h3><p class="subtle">${reason}</p></div>`;
 }
