@@ -48,6 +48,10 @@ Any static file server works. Progress is saved to `localStorage` — no backend
   flavor bonuses (e.g. a post-hand tip from the Poker Shark).
 - **Home Shop** — nine tiers from a park bench to your own casino, each with
   a daily login bonus and, at higher tiers, a boosted-payout perk.
+- **Quick Cash** — no-risk faucets on the Casino Floor for topping up fast
+  without gambling: a "Hustle for Tips" button on a short cooldown (~20s),
+  a bigger "Free Chips" claim on a longer cooldown (~15 min), and cash
+  rewards baked into most achievements. All three scale with status tier.
 - **Bankruptcy & meta-progression** — dropping below the table minimum
   anywhere ends the run: a summary screen, then reset to homeless/$5 (+ a
   permanent "Comeback Bonus" after your first bankruptcy). Achievements,

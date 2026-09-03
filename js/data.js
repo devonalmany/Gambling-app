@@ -150,22 +150,38 @@ export const SLOT_MACHINES = [
 // pays[symbol] = payout multiplier for [1,2,3,4,5]-in-a-row match count index (index 0 unused-ish, we use count-1)
 
 // ---------------------------------------------------------------- Achievements
+// `reward` is a one-time cash bonus paid out the moment the achievement unlocks.
 export const ACHIEVEMENTS = [
-  { id: 'first_win', name: 'First Blood', icon: '🎉', desc: 'Win your first bet of any kind.' },
-  { id: 'first_blackjack', name: 'Natural!', icon: '🃏', desc: 'Hit your first blackjack.' },
-  { id: 'royal_flush', name: 'Royal Flush', icon: '👑', desc: 'Win a hand with a royal flush.' },
-  { id: 'jackpot', name: 'Jackpot!', icon: '💰', desc: 'Hit a progressive jackpot on the slots.' },
-  { id: 'grinder_tier', name: 'Off The Bench', icon: '📈', desc: 'Reach Grinder status.' },
-  { id: 'regular_tier', name: 'Regular', icon: '🍻', desc: 'Reach Regular status.' },
-  { id: 'highroller_tier', name: 'High Roller', icon: '💎', desc: 'Reach High Roller status.' },
-  { id: 'whale_tier', name: 'Whale', icon: '🐳', desc: 'Reach Whale status.' },
-  { id: 'owner_tier', name: 'The House Always Wins', icon: '🎰', desc: 'Become the Casino Owner.' },
-  { id: 'survive_100', name: 'Grinder’s Resolve', icon: '⏳', desc: 'Play 100 hands/spins without going bankrupt.' },
-  { id: 'first_bankruptcy', name: 'Rock Bottom', icon: '🔻', desc: 'Go bankrupt for the first time (it happens to everyone).' },
-  { id: 'comeback', name: 'The Comeback', icon: '🔥', desc: 'Reach Regular status again after a bankruptcy.' },
-  { id: 'own_a_home', name: 'Keys In Hand', icon: '🗝️', desc: 'Buy your first home upgrade.' },
-  { id: 'penthouse', name: 'Penthouse Views', icon: '🌆', desc: 'Move into the Luxury Penthouse.' },
-  { id: 'shark_beat', name: 'Shark Bait No More', icon: '🦈', desc: 'Beat The Shark in a Nosebleed hand.' },
+  { id: 'first_win', name: 'First Blood', icon: '🎉', desc: 'Win your first bet of any kind.', reward: 10 },
+  { id: 'first_blackjack', name: 'Natural!', icon: '🃏', desc: 'Hit your first blackjack.', reward: 25 },
+  { id: 'royal_flush', name: 'Royal Flush', icon: '👑', desc: 'Win a hand with a royal flush.', reward: 500 },
+  { id: 'jackpot', name: 'Jackpot!', icon: '💰', desc: 'Hit a progressive jackpot on the slots.', reward: 0 },
+  { id: 'grinder_tier', name: 'Off The Bench', icon: '📈', desc: 'Reach Grinder status.', reward: 50 },
+  { id: 'regular_tier', name: 'Regular', icon: '🍻', desc: 'Reach Regular status.', reward: 250 },
+  { id: 'highroller_tier', name: 'High Roller', icon: '💎', desc: 'Reach High Roller status.', reward: 1000 },
+  { id: 'whale_tier', name: 'Whale', icon: '🐳', desc: 'Reach Whale status.', reward: 5000 },
+  { id: 'owner_tier', name: 'The House Always Wins', icon: '🎰', desc: 'Become the Casino Owner.', reward: 25000 },
+  { id: 'survive_100', name: 'Grinder’s Resolve', icon: '⏳', desc: 'Play 100 hands/spins without going bankrupt.', reward: 100 },
+  { id: 'first_bankruptcy', name: 'Rock Bottom', icon: '🔻', desc: 'Go bankrupt for the first time (it happens to everyone).', reward: 0 },
+  { id: 'comeback', name: 'The Comeback', icon: '🔥', desc: 'Reach Regular status again after a bankruptcy.', reward: 200 },
+  { id: 'own_a_home', name: 'Keys In Hand', icon: '🗝️', desc: 'Buy your first home upgrade.', reward: 25 },
+  { id: 'penthouse', name: 'Penthouse Views', icon: '🌆', desc: 'Move into the Luxury Penthouse.', reward: 1000 },
+  { id: 'shark_beat', name: 'Shark Bait No More', icon: '🦈', desc: 'Beat The Shark in a Nosebleed hand.', reward: 500 },
 ];
 
 export const CASH_MIN_BET_FLOOR = 1; // absolute lowest bet in the game
+
+// ------------------------------------------------------------- Quick cash
+// Two no-risk ways to top up outside of gambling: a short-cooldown "hustle"
+// for when you're broke and need bet money fast, and a slower, bigger
+// "free chips" claim. Both scale with status tier so they stay useful (but
+// never game-breaking) as you climb.
+export const HUSTLE_COOLDOWN_MS = 20 * 1000; // 20 seconds
+export const FREE_CHIPS_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
+
+export const HUSTLE_REWARDS = {
+  homeless: 3, grinder: 20, regular: 90, highroller: 450, whale: 2500, owner: 12000,
+};
+export const FREE_CHIPS_REWARDS = {
+  homeless: 12, grinder: 80, regular: 400, highroller: 2000, whale: 10000, owner: 50000,
+};

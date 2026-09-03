@@ -82,7 +82,8 @@ export function renderHUD() {
 state.addEventListener('change', renderHUD);
 state.addEventListener('achievement', (e) => {
   const a = e.detail;
-  toast(`<div class="achv-item"><span class="icon">${a.icon}</span><div><strong>Achievement Unlocked</strong><br>${a.name}</div></div>`, 'win', 5000);
+  const rewardLine = a.reward ? `<br><span class="subtle">+${fmtMoney(a.reward)}</span>` : '';
+  toast(`<div class="achv-item"><span class="icon">${a.icon}</span><div><strong>Achievement Unlocked</strong><br>${a.name}${rewardLine}</div></div>`, 'win', 5000);
 });
 
 // ---------------------------------------------------------------- Locked gate helper

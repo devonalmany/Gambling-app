@@ -1,4 +1,4 @@
-import { STATUS_TIERS, tierForNetWorth, tierIndex, HOME_TIERS, ACHIEVEMENTS, PERSONAL_SHOP_ITEMS } from './data.js';
+import { STATUS_TIERS, tierForNetWorth, tierIndex, HOME_TIERS, ACHIEVEMENTS, PERSONAL_SHOP_ITEMS, HUSTLE_COOLDOWN_MS, FREE_CHIPS_COOLDOWN_MS, HUSTLE_REWARDS, FREE_CHIPS_REWARDS } from './data.js';
 
 const SAVE_KEY = 'highroller_save_v1';
 
@@ -11,6 +11,8 @@ function freshRun(comebackBonus = 0) {
     ownedCosmetics: ['outfit_hoodie', 'jewel_none', 'hair_default'],
     ownedTeammates: [],
     lastDailyBonus: 0,
+    lastHustle: 0,
+    lastFreeChips: 0,
     handsPlayed: 0,
     biggestWin: 0,
     peakNetWorth: 5 + comebackBonus,
@@ -129,8 +131,36 @@ class GameState extends EventTarget {
     if (this.meta.achievements.includes(id)) return;
     this.meta.achievements.push(id);
     const def = ACHIEVEMENTS.find(a => a.id === id);
+    if (def?.reward) this.addCash(def.reward);
     this.dispatchEvent(new CustomEvent('achievement', { detail: def }));
     this.save();
+  }
+
+  // ---------------- quick cash (no-risk faucets) ----------------
+  hustleStatus() {
+    const remaining = HUSTLE_COOLDOWN_MS - (Date.now() - (this.run.lastHustle || 0));
+    return { ready: remaining <= 0, remainingMs: Math.max(0, remaining), reward: HUSTLE_REWARDS[this.tier.id] };
+  }
+
+  hustle() {
+    const status = this.hustleStatus();
+    if (!status.ready) return { ok: false, reason: 'Not ready yet.' };
+    this.run.lastHustle = Date.now();
+    this.addCash(status.reward);
+    return { ok: true, amount: status.reward };
+  }
+
+  freeChipsStatus() {
+    const remaining = FREE_CHIPS_COOLDOWN_MS - (Date.now() - (this.run.lastFreeChips || 0));
+    return { ready: remaining <= 0, remainingMs: Math.max(0, remaining), reward: FREE_CHIPS_REWARDS[this.tier.id] };
+  }
+
+  claimFreeChips() {
+    const status = this.freeChipsStatus();
+    if (!status.ready) return { ok: false, reason: 'Not ready yet.' };
+    this.run.lastFreeChips = Date.now();
+    this.addCash(status.reward);
+    return { ok: true, amount: status.reward };
   }
 
   // ---------------- cosmetics / home ----------------

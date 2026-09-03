@@ -35,6 +35,59 @@ function showBankruptcyModal(summary) {
   });
 }
 
+// ------------------------------------------------------------- Quick Cash (no-risk faucets)
+let quickCashInterval = null;
+
+function fmtCountdown(ms) {
+  const s = Math.ceil(ms / 1000);
+  const m = Math.floor(s / 60);
+  const rs = s % 60;
+  return m > 0 ? `${m}m ${rs}s` : `${rs}s`;
+}
+
+function renderQuickCashPanel(container) {
+  const panel = el(`
+    <div class="panel">
+      <h3>💵 Quick Cash</h3>
+      <p class="subtle">No-risk ways to top up between games — always available, no bet required.</p>
+      <div class="bet-controls">
+        <button class="btn" id="hustle-btn"></button>
+        <button class="btn secondary" id="freechips-btn"></button>
+      </div>
+    </div>
+  `);
+  container.appendChild(panel);
+
+  const hustleBtn = qs('#hustle-btn', panel);
+  const freeChipsBtn = qs('#freechips-btn', panel);
+
+  hustleBtn.addEventListener('click', () => {
+    const res = state.hustle();
+    if (res.ok) toast(`Hustled up ${fmtMoney(res.amount)}!`, 'win');
+    else toast('Still catching your breath — try again in a moment.', 'lose');
+    updateQuickCashButtons();
+  });
+  freeChipsBtn.addEventListener('click', () => {
+    const res = state.claimFreeChips();
+    if (res.ok) toast(`Claimed ${fmtMoney(res.amount)} in free chips!`, 'win');
+    else toast('Free chips aren’t ready yet.', 'lose');
+    updateQuickCashButtons();
+  });
+
+  function updateQuickCashButtons() {
+    if (!qs('#hustle-btn')) { clearInterval(quickCashInterval); return; } // screen navigated away
+    const hs = state.hustleStatus();
+    const fcs = state.freeChipsStatus();
+    hustleBtn.disabled = !hs.ready;
+    hustleBtn.textContent = hs.ready ? `💪 Hustle for Tips (+${fmtMoney(hs.reward)})` : `💪 Ready in ${fmtCountdown(hs.remainingMs)}`;
+    freeChipsBtn.disabled = !fcs.ready;
+    freeChipsBtn.textContent = fcs.ready ? `🎁 Claim Free Chips (+${fmtMoney(fcs.reward)})` : `🎁 Ready in ${fmtCountdown(fcs.remainingMs)}`;
+  }
+  updateQuickCashButtons();
+  if (quickCashInterval) clearInterval(quickCashInterval);
+  quickCashInterval = setInterval(updateQuickCashButtons, 1000);
+}
+
 // ------------------------------------------------------------- Casino Floor
 registerScreen('floor', {
   render(container) {
@@ -57,6 +110,7 @@ registerScreen('floor', {
         </div>
       </div>
     `));
+    renderQuickCashPanel(container);
     const grid = el(`<div class="game-grid"></div>`);
     games.forEach(g => {
       const card = el(`
