@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>High Roller &mdash; Rags to Riches Casino Simulator</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div id="not-real-money-banner">
+  ⭐ HIGH ROLLER is a fictional simulation. All chips, cash and winnings are virtual play currency &mdash; nothing here can be bought with, or cashed out for, real money. ⭐
+</div>
+
+<header id="hud">
+  <div class="hud-left">
+    <button id="pause-btn" class="icon-btn" title="Pause / Take a Break">⏸</button>
+    <span class="brand">HIGH <span class="brand-accent">ROLLER</span></span>
+  </div>
+  <div class="hud-mid">
+    <div class="hud-stat">
+      <span class="hud-label">Net Worth</span>
+      <span class="hud-value" id="hud-cash">$5.00</span>
+    </div>
+    <div class="hud-stat">
+      <span class="hud-label">Status</span>
+      <span class="hud-value" id="hud-status">Homeless</span>
+    </div>
+    <div class="hud-stat hud-progress">
+      <span class="hud-label"><span id="hud-tier-progress-label">Next Tier</span></span>
+      <div class="progress-bar"><div class="progress-fill" id="hud-tier-progress"></div></div>
+    </div>
+  </div>
+  <div class="hud-right">
+    <div class="hud-stat">
+      <span class="hud-label">Style Pts</span>
+      <span class="hud-value" id="hud-style">0</span>
+    </div>
+    <button id="stats-btn" class="icon-btn" title="Achievements & Stats">🏆</button>
+  </div>
+</header>
+
+<nav id="main-nav">
+  <button data-screen="floor" class="nav-btn active">🎰 Casino Floor</button>
+  <button data-screen="poker" class="nav-btn">🃏 Hold'em</button>
+  <button data-screen="blackjack" class="nav-btn">🂡 Blackjack</button>
+  <button data-screen="roulette" class="nav-btn">🎡 Roulette</button>
+  <button data-screen="slots" class="nav-btn">🎰 Slots</button>
+  <button data-screen="personal-shop" class="nav-btn">👔 Style Shop</button>
+  <button data-screen="home-shop" class="nav-btn">🏠 Home Shop</button>
+</nav>
+
+<main id="app"></main>
+
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
