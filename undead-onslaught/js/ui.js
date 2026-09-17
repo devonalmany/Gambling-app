@@ -4,8 +4,8 @@
 // buttons and text stay crisp and trivially clickable.
 import { WEAPON_ORDER, WEAPON_DEFS, UPGRADE_TRACKS, upgradeCost } from "./weapons.js";
 import { SHOP_PERKS, perkCost } from "./shop.js";
-import { ABILITY_DEFS } from "./abilities.js";
-import { fmtTime } from "./utils.js";
+import { ABILITY_DEFS, abilityLevelStats } from "./abilities.js";
+import { fmtTime, clamp } from "./utils.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -29,8 +29,8 @@ export function updateHud(player, wave, elapsed) {
   el("levelLabel").textContent = `Lv ${player.level}`;
 
   el("waveLabel").textContent = `Wave ${wave}`;
-  el("currencyLabel").textContent = `⚙ ${player.currency}`;
-  el("killsLabel").textContent = `☠ ${player.kills}`;
+  el("currencyLabel").textContent = player.currency;
+  el("killsLabel").textContent = player.kills;
   el("timeLabel").textContent = fmtTime(elapsed);
 
   const w = player.weapons[player.currentWeapon];
@@ -63,11 +63,16 @@ function renderAbilityIcons(player) {
   player.abilities.forEach((ab, i) => {
     const def = ABILITY_DEFS[ab.id];
     const wrap = container.children[i];
-    wrap.style.borderColor = def.color;
     wrap.querySelector(".glyph").textContent = def.icon;
     wrap.querySelector(".glyph").style.color = def.color;
     wrap.querySelector(".lvl").textContent = ab.level;
     wrap.title = `${def.name} Lv.${ab.level} — ${def.desc(ab.level)}`;
+
+    const stats = abilityLevelStats(ab.id, ab.level);
+    const cd = stats.interval ?? stats.tick;
+    const pct = cd ? clamp(1 - ab.timer / cd, 0, 1) : 1;
+    wrap.style.setProperty("--pct", pct.toFixed(3));
+    wrap.style.setProperty("--ring-color", def.color);
   });
 }
 
