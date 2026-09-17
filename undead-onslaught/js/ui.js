@@ -1,0 +1,223 @@
+// DOM overlay management: HUD readouts, level-up cards, the between-wave
+// shop, wave banners, and start/game-over screens. The canvas (in main.js)
+// only ever draws the game world; every menu/readout below is real DOM so
+// buttons and text stay crisp and trivially clickable.
+import { WEAPON_ORDER, WEAPON_DEFS, UPGRADE_TRACKS, upgradeCost } from "./weapons.js";
+import { SHOP_PERKS, perkCost } from "./shop.js";
+import { ABILITY_DEFS } from "./abilities.js";
+import { fmtTime } from "./utils.js";
+
+const el = (id) => document.getElementById(id);
+
+export function showScreen(id) {
+  document.querySelectorAll(".screen").forEach((s) => s.classList.add("hidden"));
+  if (id) el(id).classList.remove("hidden");
+}
+
+export function setHudVisible(visible) {
+  el("hud").classList.toggle("hidden", !visible);
+}
+
+export function updateHud(player, wave, elapsed) {
+  const hpPct = Math.max(0, (player.hp / player.maxHp) * 100);
+  el("hpFill").style.width = `${hpPct}%`;
+  el("hpFill").classList.toggle("low", hpPct < 30);
+  el("hpLabel").textContent = `${Math.ceil(player.hp)} / ${player.maxHp}`;
+
+  const xpPct = Math.max(0, Math.min(100, (player.xp / player.xpToNext) * 100));
+  el("xpFill").style.width = `${xpPct}%`;
+  el("levelLabel").textContent = `Lv ${player.level}`;
+
+  el("waveLabel").textContent = `Wave ${wave}`;
+  el("currencyLabel").textContent = `⚙ ${player.currency}`;
+  el("killsLabel").textContent = `☠ ${player.kills}`;
+  el("timeLabel").textContent = fmtTime(elapsed);
+
+  const w = player.weapons[player.currentWeapon];
+  const def = WEAPON_DEFS[player.currentWeapon];
+  el("weaponName").textContent = def.name;
+  el("ammoLabel").textContent = def.infiniteAmmo
+    ? "∞"
+    : w.reloading
+    ? "RELOADING"
+    : `${w.ammoInMag} / ${w.ammoReserve}`;
+
+  const dashPct = player.dashCooldownLeft <= 0 ? 100 : 100 * (1 - player.dashCooldownLeft / 2.4);
+  el("dashFill").style.width = `${Math.max(0, Math.min(100, dashPct))}%`;
+
+  renderAbilityIcons(player);
+}
+
+function renderAbilityIcons(player) {
+  const container = el("abilityIcons");
+  const wanted = player.abilities.length;
+  if (container.childElementCount !== wanted) {
+    container.innerHTML = "";
+    for (const ab of player.abilities) {
+      const wrap = document.createElement("div");
+      wrap.className = "ability-icon";
+      wrap.innerHTML = `<span class="glyph"></span><span class="lvl"></span>`;
+      container.appendChild(wrap);
+    }
+  }
+  player.abilities.forEach((ab, i) => {
+    const def = ABILITY_DEFS[ab.id];
+    const wrap = container.children[i];
+    wrap.style.borderColor = def.color;
+    wrap.querySelector(".glyph").textContent = def.icon;
+    wrap.querySelector(".glyph").style.color = def.color;
+    wrap.querySelector(".lvl").textContent = ab.level;
+    wrap.title = `${def.name} Lv.${ab.level} — ${def.desc(ab.level)}`;
+  });
+}
+
+export function renderWaveBanner(wave, cleared, bonus) {
+  const banner = el("waveBanner");
+  banner.classList.remove("hidden");
+  if (cleared) {
+    banner.querySelector(".big").textContent = `Wave ${wave} Cleared!`;
+    banner.querySelector(".small").textContent = bonus ? `+${bonus} bonus scrap` : "";
+  } else {
+    banner.querySelector(".big").textContent = `Wave ${wave}`;
+    banner.querySelector(".small").textContent = wave % 5 === 0 ? "Boss incoming" : "";
+  }
+}
+
+export function hideWaveBanner() {
+  el("waveBanner").classList.add("hidden");
+}
+
+export function renderLevelUpCards(cards, onPick) {
+  const container = el("cardRow");
+  container.innerHTML = "";
+  cards.forEach((card, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "levelup-card";
+    btn.style.setProperty("--accent", card.color);
+    btn.innerHTML = `
+      <div class="card-key">${idx + 1}</div>
+      <div class="card-icon" style="color:${card.color}">${card.icon}</div>
+      <div class="card-title">${card.title}</div>
+      <div class="card-desc">${card.desc}</div>
+    `;
+    btn.addEventListener("click", () => onPick(card));
+    container.appendChild(btn);
+  });
+  showScreen("levelUpScreen");
+}
+
+export function renderShop(player, wave, handlers) {
+  const perkList = el("shopPerks");
+  perkList.innerHTML = "";
+  for (const perk of SHOP_PERKS) {
+    const level = player.shopLevels[perk.id] ?? 0;
+    const cost = perkCost(perk, level);
+    perkList.appendChild(
+      shopRow({
+        title: `${perk.name} (Lv.${level})`,
+        desc: perk.desc,
+        cost,
+        affordable: player.currency >= cost,
+        onBuy: () => handlers.onBuyPerk(perk.id),
+      })
+    );
+  }
+
+  const weaponList = el("shopWeapons");
+  weaponList.innerHTML = "";
+  for (const id of WEAPON_ORDER) {
+    const def = WEAPON_DEFS[id];
+    const w = player.weapons[id];
+    const group = document.createElement("div");
+    group.className = "shop-weapon-group";
+    const header = document.createElement("div");
+    header.className = "shop-weapon-header";
+    if (!w.unlocked) {
+      header.innerHTML = `<span>${def.name}</span>`;
+      const btn = buyButton(def.unlockCost, player.currency >= def.unlockCost, () => handlers.onBuyUnlock(id));
+      btn.textContent = `Unlock — ⚙${def.unlockCost}`;
+      header.appendChild(btn);
+      group.appendChild(header);
+    } else {
+      header.innerHTML = `<span>${def.name}${id === player.currentWeapon ? " (equipped)" : ""}</span>`;
+      group.appendChild(header);
+      const tracks = document.createElement("div");
+      tracks.className = "shop-tracks";
+      for (const track of visibleTracks(def)) {
+        const level = w.upgrades[track.id];
+        const maxed = level >= track.max;
+        const cost = maxed ? 0 : upgradeCost(track.id, level);
+        const row = document.createElement("button");
+        row.className = "shop-track";
+        row.disabled = maxed || player.currency < cost;
+        row.innerHTML = `<span>${track.label}</span><span class="track-level">${level}/${track.max}</span><span class="track-cost">${maxed ? "MAX" : `⚙${cost}`}</span>`;
+        if (!maxed) row.addEventListener("click", () => handlers.onBuyUpgrade(id, track.id));
+        tracks.appendChild(row);
+      }
+      group.appendChild(tracks);
+    }
+    weaponList.appendChild(group);
+  }
+
+  el("shopCurrency").textContent = `⚙ ${player.currency}`;
+  el("shopNextWaveBtn").textContent = `Start Wave ${wave}`;
+  showScreen("shopScreen");
+}
+
+function visibleTracks(def) {
+  if (def.mode === "cone") return UPGRADE_TRACKS.filter((t) => t.id !== "pierce" && t.id !== "explosive");
+  if (def.mode === "lob") return UPGRADE_TRACKS.filter((t) => t.id !== "pierce");
+  return UPGRADE_TRACKS;
+}
+
+function shopRow({ title, desc, cost, affordable, onBuy }) {
+  const row = document.createElement("div");
+  row.className = "shop-perk-row";
+  const btn = buyButton(cost, affordable, onBuy);
+  row.innerHTML = `<div><div class="shop-perk-title">${title}</div><div class="shop-perk-desc">${desc}</div></div>`;
+  row.appendChild(btn);
+  return row;
+}
+
+function buyButton(cost, affordable, onBuy) {
+  const btn = document.createElement("button");
+  btn.className = "buy-btn";
+  btn.textContent = `⚙${cost}`;
+  btn.disabled = !affordable;
+  btn.addEventListener("click", onBuy);
+  return btn;
+}
+
+export function renderGameOver(stats, highScores) {
+  el("goWave").textContent = stats.wave;
+  el("goKills").textContent = stats.kills;
+  el("goTime").textContent = fmtTime(stats.timeAlive);
+  el("goCurrency").textContent = stats.currency;
+
+  const list = el("highScoreList");
+  list.innerHTML = "";
+  if (!highScores.length) {
+    list.innerHTML = "<li class='empty'>No runs yet.</li>";
+  } else {
+    highScores.forEach((s, i) => {
+      const li = document.createElement("li");
+      li.textContent = `#${i + 1} — Wave ${s.wave} · ${s.kills} kills · ${fmtTime(s.timeAlive)}`;
+      list.appendChild(li);
+    });
+  }
+  showScreen("gameOverScreen");
+}
+
+export function renderStartHighScores(highScores) {
+  const list = el("startHighScoreList");
+  list.innerHTML = "";
+  if (!highScores.length) {
+    list.innerHTML = "<li class='empty'>No runs yet — be the first survivor.</li>";
+    return;
+  }
+  highScores.slice(0, 5).forEach((s, i) => {
+    const li = document.createElement("li");
+    li.textContent = `#${i + 1} — Wave ${s.wave} · ${s.kills} kills`;
+    list.appendChild(li);
+  });
+}

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Undead Onslaught</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="game"></canvas>
+
+    <!-- Heads-up display, visible only while playing/paused -->
+    <div id="hud" class="hidden">
+      <div class="hud-top-left">
+        <div class="hud-stat"><span id="waveLabel">Wave 1</span></div>
+        <div class="hud-stat"><span id="currencyLabel">⚙ 0</span></div>
+        <div class="hud-stat"><span id="killsLabel">☠ 0</span></div>
+        <div class="hud-stat"><span id="timeLabel">0:00</span></div>
+      </div>
+
+      <div class="hud-bottom-center">
+        <div class="bar-row">
+          <span class="bar-label" id="levelLabel">Lv 1</span>
+          <div class="bar xp-bar"><div id="xpFill" class="bar-fill"></div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label" id="hpLabel">100 / 100</span>
+          <div class="bar hp-bar"><div id="hpFill" class="bar-fill"></div></div>
+        </div>
+        <div class="weapon-row">
+          <span id="weaponName">Pistol</span>
+          <span id="ammoLabel">∞</span>
+          <span class="dash-wrap">DASH <div class="bar dash-bar"><div id="dashFill" class="bar-fill"></div></div></span>
+        </div>
+      </div>
+
+      <div id="abilityIcons" class="hud-abilities"></div>
+    </div>
+
+    <div id="waveBanner" class="hidden">
+      <div class="big">Wave 1</div>
+      <div class="small"></div>
+    </div>
+
+    <!-- Start screen -->
+    <div id="startScreen" class="screen">
+      <div class="panel start-panel">
+        <h1>UNDEAD ONSLAUGHT</h1>
+        <p class="tagline">Survive the horde. Upgrade between waves. There is no win — only how long you last.</p>
+        <div class="controls-grid">
+          <div><b>WASD</b> Move</div>
+          <div><b>Mouse</b> Aim &amp; Shoot</div>
+          <div><b>R</b> Reload</div>
+          <div><b>Space</b> Dash</div>
+          <div><b>E</b> Melee Shove</div>
+          <div><b>1-8</b> Switch Weapon</div>
+          <div><b>Esc</b> Pause</div>
+        </div>
+        <button id="startBtn" class="primary-btn">Start Run</button>
+        <div class="high-scores">
+          <h3>Best Runs</h3>
+          <ul id="startHighScoreList"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Level-up card picker -->
+    <div id="levelUpScreen" class="screen hidden">
+      <div class="panel">
+        <h2>Level Up!</h2>
+        <p class="hint">Choose one</p>
+        <div id="cardRow" class="card-row"></div>
+      </div>
+    </div>
+
+    <!-- Between-wave shop -->
+    <div id="shopScreen" class="screen hidden">
+      <div class="panel shop-panel">
+        <div class="shop-header">
+          <h2>Supply Cache</h2>
+          <div id="shopCurrency" class="shop-currency">⚙ 0</div>
+        </div>
+        <div class="shop-columns">
+          <div class="shop-column">
+            <h3>Perks</h3>
+            <div id="shopPerks"></div>
+          </div>
+          <div class="shop-column">
+            <h3>Weapons</h3>
+            <div id="shopWeapons"></div>
+          </div>
+        </div>
+        <button id="shopNextWaveBtn" class="primary-btn">Start Wave</button>
+      </div>
+    </div>
+
+    <!-- Pause -->
+    <div id="pauseScreen" class="screen hidden">
+      <div class="panel">
+        <h2>Paused</h2>
+        <button id="resumeBtn" class="primary-btn">Resume</button>
+        <button id="pauseRestartBtn" class="secondary-btn">Restart Run</button>
+      </div>
+    </div>
+
+    <!-- Game over -->
+    <div id="gameOverScreen" class="screen hidden">
+      <div class="panel">
+        <h2>You Died</h2>
+        <div class="stats-grid">
+          <div><span class="stat-label">Wave Reached</span><span id="goWave">1</span></div>
+          <div><span class="stat-label">Zombies Killed</span><span id="goKills">0</span></div>
+          <div><span class="stat-label">Time Survived</span><span id="goTime">0:00</span></div>
+          <div><span class="stat-label">Scrap Earned</span><span id="goCurrency">0</span></div>
+        </div>
+        <button id="restartBtn" class="primary-btn">Try Again</button>
+        <div class="high-scores">
+          <h3>Best Runs</h3>
+          <ul id="highScoreList"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
