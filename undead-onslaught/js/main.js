@@ -307,7 +307,7 @@ function updateWeapon(dt, now) {
 
   if (Input.wasPressed("KeyR")) startReload(w, def);
 
-  const aim = angleTo(player.x, player.y, Input.mouse.x, Input.mouse.y);
+  const aim = computeAimAngle();
 
   if (def.mode === "cone") {
     if (Input.mouse.down && !w.reloading && w.ammoInMag > 0 && w.fireTimer <= 0) {
@@ -383,6 +383,29 @@ function normDiff(a, b) {
   return d;
 }
 
+// With the Auto-Aim Module owned, weapons/melee/facing track the nearest
+// zombie instead of the mouse cursor.
+function computeAimAngle() {
+  if (player.autoAim) {
+    const target = nearestEnemyToPlayer();
+    if (target) return angleTo(player.x, player.y, target.x, target.y);
+  }
+  return angleTo(player.x, player.y, Input.mouse.x, Input.mouse.y);
+}
+
+function nearestEnemyToPlayer() {
+  let best = null;
+  let bestD = Infinity;
+  for (const z of enemies) {
+    const d = dist(player.x, player.y, z.x, z.y);
+    if (d < bestD) {
+      bestD = d;
+      best = z;
+    }
+  }
+  return best;
+}
+
 const flameParticles = [];
 function spawnFlameParticle(x, y, angle) {
   flameParticles.push({ x, y, angle: angle + randRange(-0.35, 0.35), life: 0.25, age: 0 });
@@ -393,7 +416,7 @@ function tryMelee() {
   if (player.meleeCooldownLeft > 0) return;
   player.meleeCooldownLeft = PLAYER.meleeCooldown;
   player.meleeSwingT = 1;
-  const aim = angleTo(player.x, player.y, Input.mouse.x, Input.mouse.y);
+  const aim = computeAimAngle();
   for (const z of enemies) {
     const d = dist(player.x, player.y, z.x, z.y);
     if (d > PLAYER.meleeRange + z.radius) continue;
@@ -480,7 +503,7 @@ function update(dt, now) {
 
   const moveVec = Input.moveVector();
   updatePlayer(player, dt, Input, moveVec, bounds);
-  player.facing = angleTo(player.x, player.y, Input.mouse.x, Input.mouse.y);
+  player.facing = computeAimAngle();
 
   for (const id of WEAPON_ORDER) {
     const def = WEAPON_DEFS[id];
@@ -562,6 +585,8 @@ function update(dt, now) {
   }
 
   updateWaveManager(waveManager, dt, enemies, bounds);
+
+  UI.updateHud(player, waveManager.wave, elapsed);
 
   presentLevelUpIfNeeded();
 

@@ -11,6 +11,7 @@ export const SHOP_PERKS = [
   { id: "currencyGain", name: "Currency Gain", desc: "+10% Currency Gain", costBase: 60, apply: (p) => { p.perks.currencyGainMul += 0.1; } },
   { id: "regen", name: "Health Regen", desc: "+0.4 HP/s Regen", costBase: 55, apply: (p) => { p.perks.regenBonus += 0.4; } },
   { id: "extraAmmo", name: "Extra Ammo", desc: "+15% Ammo Refill Between Waves", costBase: 40, apply: (p) => { p.perks.extraAmmoMul += 0.15; } },
+  { id: "autoAim", name: "Auto-Aim Module", desc: "Weapons and melee always track the nearest zombie", costBase: 500, maxLevel: 1, apply: (p) => { p.autoAim = true; } },
 ];
 
 export function perkCost(perk, level) {
@@ -21,6 +22,7 @@ export function buyPerk(player, perkId) {
   const perk = SHOP_PERKS.find((p) => p.id === perkId);
   if (!perk) return false;
   const level = player.shopLevels[perkId] ?? 0;
+  if (perk.maxLevel && level >= perk.maxLevel) return false;
   const cost = perkCost(perk, level);
   if (player.currency < cost) return false;
   player.currency -= cost;

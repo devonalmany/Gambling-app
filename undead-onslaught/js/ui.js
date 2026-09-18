@@ -45,6 +45,8 @@ export function updateHud(player, wave, elapsed) {
   const dashPct = player.dashCooldownLeft <= 0 ? 100 : 100 * (1 - player.dashCooldownLeft / 2.4);
   el("dashFill").style.width = `${Math.max(0, Math.min(100, dashPct))}%`;
 
+  el("autoAimTag").classList.toggle("hidden", !player.autoAim);
+
   renderAbilityIcons(player);
 }
 
@@ -116,12 +118,14 @@ export function renderShop(player, wave, handlers) {
   perkList.innerHTML = "";
   for (const perk of SHOP_PERKS) {
     const level = player.shopLevels[perk.id] ?? 0;
+    const owned = perk.maxLevel && level >= perk.maxLevel;
     const cost = perkCost(perk, level);
     perkList.appendChild(
       shopRow({
-        title: `${perk.name} (Lv.${level})`,
+        title: perk.maxLevel ? perk.name : `${perk.name} (Lv.${level})`,
         desc: perk.desc,
         cost,
+        owned,
         affordable: player.currency >= cost,
         onBuy: () => handlers.onBuyPerk(perk.id),
       })
@@ -175,10 +179,10 @@ function visibleTracks(def) {
   return UPGRADE_TRACKS;
 }
 
-function shopRow({ title, desc, cost, affordable, onBuy }) {
+function shopRow({ title, desc, cost, affordable, owned, onBuy }) {
   const row = document.createElement("div");
   row.className = "shop-perk-row";
-  const btn = buyButton(cost, affordable, onBuy);
+  const btn = owned ? ownedButton() : buyButton(cost, affordable, onBuy);
   row.innerHTML = `<div><div class="shop-perk-title">${title}</div><div class="shop-perk-desc">${desc}</div></div>`;
   row.appendChild(btn);
   return row;
@@ -190,6 +194,14 @@ function buyButton(cost, affordable, onBuy) {
   btn.textContent = `⚙${cost}`;
   btn.disabled = !affordable;
   btn.addEventListener("click", onBuy);
+  return btn;
+}
+
+function ownedButton() {
+  const btn = document.createElement("button");
+  btn.className = "buy-btn owned";
+  btn.textContent = "OWNED";
+  btn.disabled = true;
   return btn;
 }
 

@@ -60,6 +60,7 @@ export function createPlayer(canvasW, canvasH) {
       extraAmmoMul: 1,
     },
     shopLevels: {},
+    autoAim: false,
   };
 }
 

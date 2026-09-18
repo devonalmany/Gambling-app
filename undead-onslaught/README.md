@@ -52,7 +52,9 @@ python3 -m http.server 8081
   level-up.
 - **Between-wave shop** — spend this run's scrap on weapon unlocks/upgrades
   or permanent-for-the-run player perks (max HP, move speed, dash cooldown,
-  currency gain, regen, ammo refill rate).
+  currency gain, regen, ammo refill rate). A one-time **Auto-Aim Module**
+  (⚙500) makes weapons and melee always track the nearest zombie instead of
+  the mouse cursor.
 - **6 zombie types** — Walker, Runner, Brute (high HP/damage, CC-resistant),
   Spitter (kites and lobs ranged acid), Screamer (buffs nearby zombies and
   periodically summons more, itself CC-resistant), and a scaling Boss every
