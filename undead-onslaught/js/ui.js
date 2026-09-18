@@ -46,6 +46,7 @@ export function updateHud(player, wave, elapsed) {
   el("dashFill").style.width = `${Math.max(0, Math.min(100, dashPct))}%`;
 
   el("autoAimTag").classList.toggle("hidden", !player.autoAim);
+  el("autoFireTag").classList.toggle("hidden", !player.autoFire);
 
   renderAbilityIcons(player);
 }

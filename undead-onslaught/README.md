@@ -28,6 +28,7 @@ python3 -m http.server 8081
 | Space          | Dash                |
 | E              | Melee shove         |
 | 1–8            | Switch weapon       |
+| F              | Toggle auto-fire    |
 | Esc            | Pause               |
 
 ## What's implemented
@@ -37,10 +38,12 @@ python3 -m http.server 8081
   faster, tougher) wave begins. Health regenerates slowly; a dash gives a
   short burst of invulnerability to escape being surrounded.
 - **8 weapons** — Pistol (infinite ammo, starting weapon), Shotgun, SMG,
-  Assault Rifle, Sniper Rifle, Flamethrower (continuous cone tick damage),
+  Assault Rifle, Sniper Rifle, Flamethrower (cone tick damage that also
+  ignites zombies for ~2s of lingering burn damage after you stop firing),
   Grenade Launcher (arcing AOE), and Minigun (spins up tighter accuracy the
   longer you hold the trigger). All but the Pistol are locked until bought
-  in the shop.
+  in the shop. Hold the mouse to fire, or press **F** to toggle Auto-Fire
+  and keep the trigger held automatically whenever zombies are on the field.
 - **Weapon upgrade tracks** — per-weapon Damage, Fire Rate, Reload Speed,
   Magazine Size, Crit Chance, Piercing, and Explosive Rounds, each with
   independent levels and scaling cost.

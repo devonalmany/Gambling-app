@@ -61,6 +61,7 @@ export function createPlayer(canvasW, canvasH) {
     },
     shopLevels: {},
     autoAim: false,
+    autoFire: false,
   };
 }
 

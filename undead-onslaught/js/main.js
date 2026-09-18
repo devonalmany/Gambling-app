@@ -33,6 +33,20 @@ const ctx = canvas.getContext("2d");
 let bounds = { w: window.innerWidth, h: window.innerHeight };
 let groundTexture = null;
 let ambientParticles = [];
+let shakeTimeLeft = 0;
+let shakeMag = 0;
+
+function addShake(mag, dur) {
+  shakeMag = Math.max(shakeMag, mag);
+  shakeTimeLeft = Math.max(shakeTimeLeft, dur);
+}
+function updateShake(dt) {
+  if (shakeTimeLeft > 0) {
+    shakeTimeLeft -= dt;
+  } else {
+    shakeMag = 0;
+  }
+}
 
 function resize() {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -308,9 +322,10 @@ function updateWeapon(dt, now) {
   if (Input.wasPressed("KeyR")) startReload(w, def);
 
   const aim = computeAimAngle();
+  const firing = isFiring();
 
   if (def.mode === "cone") {
-    if (Input.mouse.down && !w.reloading && w.ammoInMag > 0 && w.fireTimer <= 0) {
+    if (firing && !w.reloading && w.ammoInMag > 0 && w.fireTimer <= 0) {
       w.fireTimer = 1 / stats.fireRate;
       w.ammoInMag -= 1;
       const half = (def.coneDeg * Math.PI) / 180 / 2;
@@ -319,16 +334,18 @@ function updateWeapon(dt, now) {
         const d = dist(player.x, player.y, z.x, z.y);
         if (d <= def.range + z.radius && Math.abs(normDiff(a, aim)) <= half) {
           damageEnemy(z, stats.damage);
+          igniteEnemy(z, stats.damage, now);
         }
       }
-      spawnFlameParticle(player.x, player.y, aim);
+      spawnFlameCone(player.x, player.y, aim, def.range);
+      spawnMuzzleFlash(aim, "#ff8c28");
       if (w.ammoInMag <= 0) startReload(w, def);
     }
     return;
   }
 
   if (def.mode === "lob") {
-    if (Input.mouse.down && !w.reloading && w.ammoInMag > 0 && w.fireTimer <= 0) {
+    if (firing && !w.reloading && w.ammoInMag > 0 && w.fireTimer <= 0) {
       w.fireTimer = 1 / stats.fireRate;
       w.ammoInMag -= 1;
       spawnProjectile(friendlyProjectiles, {
@@ -346,6 +363,7 @@ function updateWeapon(dt, now) {
         fuse: 0.85,
         color: "#a3e635",
       });
+      spawnMuzzleFlash(aim, "#a3e635");
       if (w.ammoInMag <= 0) startReload(w, def);
     }
     return;
@@ -353,10 +371,10 @@ function updateWeapon(dt, now) {
 
   // projectile mode (pistol/shotgun/smg/rifle/sniper/minigun)
   if (player.currentWeapon === "minigun") {
-    w.holdTime = Input.mouse.down ? Math.min(def.spinUpTime, w.holdTime + dt) : Math.max(0, w.holdTime - dt * 2);
+    w.holdTime = firing ? Math.min(def.spinUpTime, w.holdTime + dt) : Math.max(0, w.holdTime - dt * 2);
   }
 
-  if (Input.mouse.down && !w.reloading && w.fireTimer <= 0) {
+  if (firing && !w.reloading && w.fireTimer <= 0) {
     if (def.infiniteAmmo || w.ammoInMag > 0) {
       w.fireTimer = 1 / stats.fireRate;
       if (!def.infiniteAmmo) w.ammoInMag -= 1;
@@ -369,6 +387,7 @@ function updateWeapon(dt, now) {
       for (let i = 0; i < pellets; i++) {
         fireBullet(player, def, { ...stats, spreadDeg: spread }, aim, stats.damage);
       }
+      spawnMuzzleFlash(aim, "#ffe066");
       if (!def.infiniteAmmo && w.ammoInMag <= 0) startReload(w, def);
     } else {
       startReload(w, def);
@@ -406,9 +425,71 @@ function nearestEnemyToPlayer() {
   return best;
 }
 
+// Auto-Fire (toggled with F) keeps the trigger held automatically, but only
+// while there's actually something on the field — no point burning ammo
+// into empty air between spawns.
+function isFiring() {
+  return Input.mouse.down || (player.autoFire && enemies.length > 0);
+}
+
+const muzzleFlashes = [];
+function spawnMuzzleFlash(angle, color) {
+  const tipX = player.x + Math.cos(angle) * (player.radius + 14);
+  const tipY = player.y + Math.sin(angle) * (player.radius + 14);
+  muzzleFlashes.push({ x: tipX, y: tipY, angle, life: 0.06, age: 0, color });
+}
+
 const flameParticles = [];
-function spawnFlameParticle(x, y, angle) {
-  flameParticles.push({ x, y, angle: angle + randRange(-0.35, 0.35), life: 0.25, age: 0 });
+function spawnFlameCone(x, y, angle, range) {
+  const count = randInt(4, 6);
+  for (let i = 0; i < count; i++) {
+    const a = angle + randRange(-0.32, 0.32);
+    const speed = randRange(90, 210);
+    flameParticles.push({
+      x: x + Math.cos(a) * 8,
+      y: y + Math.sin(a) * 8,
+      vx: Math.cos(a) * speed,
+      vy: Math.sin(a) * speed,
+      size: randRange(6, 13),
+      life: randRange(0.22, 0.4),
+      age: 0,
+      smoke: false,
+    });
+  }
+  for (let i = 0; i < 2; i++) {
+    const a = angle + randRange(-0.4, 0.4);
+    const d = randRange(range * 0.3, range * 0.6);
+    flameParticles.push({
+      x: x + Math.cos(a) * d,
+      y: y + Math.sin(a) * d,
+      vx: Math.cos(a) * 22 + randRange(-10, 10),
+      vy: Math.sin(a) * 22 - 26,
+      size: randRange(10, 17),
+      life: randRange(0.5, 0.8),
+      age: 0,
+      smoke: true,
+    });
+  }
+}
+
+// Flamethrower ignition: a lingering burn that keeps ticking after a
+// zombie steps out of the cone, refreshed for as long as it stays lit.
+function igniteEnemy(z, hitDamage, now) {
+  z.burnUntil = now + 2000;
+  z.burnTickDamage = Math.max(z.burnTickDamage, hitDamage * 0.3);
+  if (z.burnTickTimer <= 0) z.burnTickTimer = 0.4;
+}
+
+function updateBurns(dt, now) {
+  for (const z of enemies) {
+    if (z.hp <= 0 || z.burnUntil <= now) continue;
+    z.burnTickTimer -= dt;
+    if (z.burnTickTimer <= 0) {
+      z.burnTickTimer = 0.4;
+      damageEnemy(z, z.burnTickDamage);
+      popups.push({ x: z.x, y: z.y - 8, text: Math.round(z.burnTickDamage).toString(), life: 0.4, age: 0, color: "#ff8c28" });
+    }
+  }
 }
 
 // ---- Melee shove -----------------------------------------------------------
@@ -431,6 +512,7 @@ function tryMelee() {
 // ---- Damage / death handling -----------------------------------------------
 function damageEnemy(z, amount) {
   z.hp -= amount;
+  z.hitFlashUntil = performance.now() + 90;
 }
 
 function killRewardsAndCleanup() {
@@ -457,6 +539,7 @@ function onPlayerHit(dmg, dirX, dirY) {
     player.x -= dirX * 6;
     player.y -= dirY * 6;
     popups.push({ x: player.x, y: player.y - 20, text: `-${Math.round(dmg)}`, life: 0.6, age: 0, color: "#ff6b6b" });
+    addShake(clamp(dmg * 0.15, 1, 8), 0.12);
   }
 }
 
@@ -513,6 +596,7 @@ function update(dt, now) {
 
   if (Input.wasPressed("Space") || Input.wasPressed("ShiftLeft")) tryDash(player, moveVec);
   if (Input.wasPressed("KeyE")) tryMelee();
+  if (Input.wasPressed("KeyF")) player.autoFire = !player.autoFire;
 
   updateEnemies(enemies, dt, player, {
     bounds,
@@ -566,6 +650,7 @@ function update(dt, now) {
   }
 
   updateAbilities(player, dt, { now, enemies, damageEnemy, arenaBounds: bounds });
+  updateBurns(dt, now);
 
   killRewardsAndCleanup();
 
@@ -583,6 +668,11 @@ function update(dt, now) {
     flameParticles[i].age += dt;
     if (flameParticles[i].age >= flameParticles[i].life) flameParticles.splice(i, 1);
   }
+  for (let i = muzzleFlashes.length - 1; i >= 0; i--) {
+    muzzleFlashes[i].age += dt;
+    if (muzzleFlashes[i].age >= muzzleFlashes[i].life) muzzleFlashes.splice(i, 1);
+  }
+  updateShake(dt);
 
   updateWaveManager(waveManager, dt, enemies, bounds);
 
@@ -612,6 +702,7 @@ function applyHit(p, z) {
 }
 
 function explode(p) {
+  addShake(p.mode === "grenade" ? 6 : 3, p.mode === "grenade" ? 0.22 : 0.12);
   for (const z of enemies) {
     if (z.hp <= 0) continue;
     const d = dist(p.x, p.y, z.x, z.y);
@@ -627,14 +718,23 @@ function explode(p) {
 // ---- Rendering ---------------------------------------------------------------
 function render() {
   ctx.clearRect(0, 0, bounds.w, bounds.h);
+  ctx.save();
+  if (shakeMag > 0.05) {
+    ctx.translate(randRange(-shakeMag, shakeMag), randRange(-shakeMag, shakeMag));
+  }
+
   drawArena();
   drawAmbientParticles();
 
-  if (!player) return;
+  if (!player) {
+    ctx.restore();
+    return;
+  }
 
   drawPickups();
   drawAbilityVisuals();
   drawFlames();
+  drawMuzzleFlashes();
   drawProjectiles(friendlyProjectiles);
   drawProjectiles(enemyProjectiles, true);
   drawEnemies();
@@ -643,6 +743,7 @@ function render() {
 
   if (waveManager.wave >= 16) drawFog();
   if (player.hp / player.maxHp < 0.3) drawLowHealthVignette();
+  ctx.restore();
 }
 
 function drawArena() {
@@ -969,6 +1070,17 @@ function drawEnemies() {
     else if (z.type === "screamer") drawScreamerBody(z, now);
     else drawWalkerBody(z);
 
+    if (z.burnUntil > now) drawBurningOverlay(z, now);
+
+    if (z.hitFlashUntil > now) {
+      ctx.globalAlpha = clamp((z.hitFlashUntil - now) / 90, 0, 1) * 0.7;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(0, 0, z.radius * 1.05, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
     ctx.restore();
 
     if (z.isBoss && z.telegraph > 0) {
@@ -1033,17 +1145,90 @@ function hexAlpha(hex, alpha) {
   return `${hex}${a}`;
 }
 
-function drawFlames() {
-  for (const f of flameParticles) {
-    ctx.save();
-    ctx.shadowColor = "#ff8c28";
-    ctx.shadowBlur = 10;
-    ctx.fillStyle = "rgba(255,140,40,0.55)";
+function drawMuzzleFlashes() {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (const m of muzzleFlashes) {
+    const t = clamp(m.age / m.life, 0, 1);
+    const len = 22 * (1 - t);
+    const tipX = m.x + Math.cos(m.angle) * len;
+    const tipY = m.y + Math.sin(m.angle) * len;
+    const grad = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, 12 * (1 - t * 0.4));
+    grad.addColorStop(0, "rgba(255,255,255,0.9)");
+    grad.addColorStop(0.4, m.color);
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(f.x + Math.cos(f.angle) * f.age * 140, f.y + Math.sin(f.angle) * f.age * 140, Math.max(2, 10 - f.age * 20), 0, Math.PI * 2);
+    ctx.arc(m.x, m.y, 10 * (1 - t * 0.5), 0, Math.PI * 2);
     ctx.fill();
-    ctx.restore();
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 3 * (1 - t);
+    ctx.beginPath();
+    ctx.moveTo(m.x, m.y);
+    ctx.lineTo(tipX, tipY);
+    ctx.stroke();
   }
+  ctx.restore();
+}
+
+function drawFlames() {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (const f of flameParticles) {
+    if (f.smoke) continue;
+    const t = clamp(f.age / f.life, 0, 1);
+    const x = f.x + f.vx * f.age;
+    const y = f.y + f.vy * f.age;
+    const r = Math.max(1, f.size * (1 - t * 0.5));
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+    if (t < 0.4) {
+      grad.addColorStop(0, "rgba(255,244,190,0.95)");
+      grad.addColorStop(0.5, "rgba(255,168,40,0.85)");
+      grad.addColorStop(1, "rgba(255,90,20,0)");
+    } else {
+      grad.addColorStop(0, "rgba(255,150,40,0.7)");
+      grad.addColorStop(0.6, "rgba(210,60,20,0.5)");
+      grad.addColorStop(1, "rgba(120,20,10,0)");
+    }
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  for (const f of flameParticles) {
+    if (!f.smoke) continue;
+    const t = clamp(f.age / f.life, 0, 1);
+    const x = f.x + f.vx * f.age;
+    const y = f.y + f.vy * f.age;
+    const r = f.size * (0.6 + t * 0.8);
+    ctx.fillStyle = `rgba(60,55,50,${0.28 * (1 - t)})`;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawBurningOverlay(z, now) {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  const flicker = 0.6 + Math.sin(now * 0.02 + z.uid) * 0.4;
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 + now * 0.003;
+    const ox = Math.cos(a) * z.radius * 0.35;
+    const oy = Math.sin(a) * z.radius * 0.35 - z.radius * 0.25;
+    const r = z.radius * 0.4;
+    const grad = ctx.createRadialGradient(ox, oy, 0, ox, oy, r);
+    grad.addColorStop(0, `rgba(255,205,90,${0.85 * flicker})`);
+    grad.addColorStop(0.6, `rgba(255,110,30,${0.55 * flicker})`);
+    grad.addColorStop(1, "rgba(255,60,10,0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(ox, oy, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 function drawPickups() {
@@ -1300,7 +1485,7 @@ function frame(ts) {
   Input.endFrame();
 
   // Read-only debug snapshot for the browser console / QA tooling.
-  window.__uoDebug = { screen, player, enemies, waveManager };
+  window.__uoDebug = { screen, player, enemies, waveManager, friendlyProjectiles, enemyProjectiles };
 }
 
 requestAnimationFrame(frame);

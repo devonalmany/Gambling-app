@@ -274,15 +274,22 @@ h3 {
   font-size: 12px;
 }
 
-.auto-aim-tag {
+.auto-aim-tag,
+.auto-fire-tag {
   font-size: 11px;
   color: var(--void);
-  background: var(--toxic);
   padding: 2px 7px;
   border-radius: 3px;
   letter-spacing: 0.04em;
-  box-shadow: 0 0 8px rgba(143, 225, 63, 0.6);
   animation: pulse-danger 1.4s ease-in-out infinite;
+}
+.auto-aim-tag {
+  background: var(--toxic);
+  box-shadow: 0 0 8px rgba(143, 225, 63, 0.6);
+}
+.auto-fire-tag {
+  background: var(--signal);
+  box-shadow: 0 0 8px rgba(255, 201, 77, 0.6);
 }
 
 .hud-abilities {

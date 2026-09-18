@@ -112,6 +112,9 @@ export function spawnBoss(list, wave, bounds) {
     charging: false,
     chargeDirX: 0,
     chargeDirY: 0,
+    burnUntil: 0,
+    burnTickTimer: 0,
+    burnTickDamage: 0,
   });
 }
 
@@ -170,6 +173,9 @@ export function spawnZombie(list, typeId, wave, bounds) {
     slowUntil: 0,
     slowFactor: 1,
     knockbackDecay: 0,
+    burnUntil: 0,
+    burnTickTimer: 0,
+    burnTickDamage: 0,
   });
 }
 
