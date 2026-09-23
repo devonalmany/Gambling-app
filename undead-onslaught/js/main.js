@@ -16,7 +16,7 @@ import { WEAPON_ORDER, WEAPON_DEFS, effectiveStats } from "./weapons.js";
 import { spawnProjectile, updateProjectiles } from "./projectiles.js";
 import { updateEnemies, applyKnockback, spawnZombie } from "./enemies.js";
 import { spawnCurrencyDrop, maybeSpawnHealthDrop, updatePickups } from "./pickups.js";
-import { updateAbilities } from "./abilities.js";
+import { updateAbilities, isMagnetActive, abilityLevelStats } from "./abilities.js";
 import { generateLevelUpCards, applyCard } from "./levelup.js";
 import { buyPerk, buyWeaponUnlock, buyWeaponUpgrade } from "./shop.js";
 import { createWaveManager, startWave, updateWaveManager, isWaveClear } from "./waves.js";
@@ -336,6 +336,16 @@ function switchWeapon(id) {
   player.currentWeapon = id;
 }
 
+// Mouse wheel cycling through unlocked weapons — the only way to reach
+// weapons beyond the direct 1-0 hotkeys.
+function cycleWeapon(dir) {
+  const unlocked = WEAPON_ORDER.filter((id) => player.weapons[id].unlocked);
+  if (unlocked.length < 2) return;
+  const idx = unlocked.indexOf(player.currentWeapon);
+  const next = unlocked[(idx + dir + unlocked.length) % unlocked.length];
+  player.currentWeapon = next;
+}
+
 function fireBullet(player, def, stats, angle, dmg) {
   const half = (stats.spreadDeg ?? def.spreadDeg ?? 0) * (Math.PI / 180) / 2;
   const a = angle + randRange(-half, half);
@@ -396,7 +406,7 @@ function updateWeapon(dt, now) {
         damage: stats.damage,
         pierce: 0,
         explosive: true,
-        explosionRadius: Math.max(def.explosionRadius, stats.explosionRadius),
+        explosionRadius: stats.explosionRadius,
         explosionDamageMul: 1,
         radius: 6,
         mode: "grenade",
@@ -416,7 +426,31 @@ function updateWeapon(dt, now) {
     return;
   }
 
-  // projectile mode (pistol/shotgun/smg/rifle/sniper/minigun)
+  if (def.mode === "hitscan") {
+    if (firing && w.fireTimer <= 0) {
+      w.fireTimer = 1 / stats.fireRate;
+      fireLaser(aim, stats, def);
+    }
+    return;
+  }
+
+  if (def.mode === "melee") {
+    if (firing && w.fireTimer <= 0) {
+      w.fireTimer = 1 / stats.fireRate;
+      const half = (def.coneDeg * Math.PI) / 180 / 2;
+      for (const z of enemies) {
+        const a = angleTo(player.x, player.y, z.x, z.y);
+        const d = dist(player.x, player.y, z.x, z.y);
+        if (d <= stats.range + z.radius && Math.abs(normDiff(a, aim)) <= half) {
+          damageEnemy(z, stats.damage);
+        }
+      }
+      spawnSparkBurst(player.x, player.y, aim);
+    }
+    return;
+  }
+
+  // projectile mode (pistol/shotgun/smg/rifle/sniper/minigun/crossbow/rocketLauncher)
   if (player.currentWeapon === "minigun") {
     w.holdTime = firing ? Math.min(def.spinUpTime, w.holdTime + dt) : Math.max(0, w.holdTime - dt * 2);
   }
@@ -523,6 +557,68 @@ function fireRailgun(angle, stats, def) {
   addShake(4, 0.12);
 }
 
+// Laser Rifle: instant hitscan, but stops at the first zombie in the line —
+// no piercing, just a fast precise single-target zap.
+const laserBeams = [];
+function fireLaser(angle, stats, def) {
+  const dx = Math.cos(angle);
+  const dy = Math.sin(angle);
+  let closest = null;
+  let closestProj = Infinity;
+  for (const z of enemies) {
+    if (z.hp <= 0) continue;
+    const rx = z.x - player.x;
+    const ry = z.y - player.y;
+    const proj = rx * dx + ry * dy;
+    if (proj < 0 || proj > def.range) continue;
+    const perp = Math.abs(rx * dy - ry * dx);
+    if (perp <= z.radius + 3 && proj < closestProj) {
+      closest = z;
+      closestProj = proj;
+    }
+  }
+  const endDist = closest ? closestProj : def.range;
+  if (closest) {
+    const crit = Math.random() < stats.critChance;
+    const dmg = crit ? stats.damage * 2 : stats.damage;
+    damageEnemy(closest, dmg);
+    popups.push({
+      x: closest.x,
+      y: closest.y - 10,
+      text: crit ? `${Math.round(dmg)}!` : `${Math.round(dmg)}`,
+      life: 0.4,
+      age: 0,
+      color: crit ? "#ff5c5c" : "#bbf7d0",
+    });
+  }
+  laserBeams.push({
+    x1: player.x,
+    y1: player.y,
+    x2: player.x + dx * endDist,
+    y2: player.y + dy * endDist,
+    life: 0.08,
+    age: 0,
+  });
+  spawnMuzzleFlash(angle, "#86efac");
+}
+
+// Chainsaw: a burst of sparks at melee range instead of a flame cone.
+const sparkParticles = [];
+function spawnSparkBurst(x, y, angle) {
+  for (let i = 0; i < 5; i++) {
+    const a = angle + randRange(-0.5, 0.5);
+    const speed = randRange(120, 260);
+    sparkParticles.push({
+      x: x + Math.cos(angle) * 30,
+      y: y + Math.sin(angle) * 30,
+      vx: Math.cos(a) * speed,
+      vy: Math.sin(a) * speed,
+      life: randRange(0.12, 0.22),
+      age: 0,
+    });
+  }
+}
+
 const flameParticles = [];
 function spawnFlameCone(x, y, angle, range) {
   const count = randInt(4, 6);
@@ -618,12 +714,17 @@ function grantXpAndMaybeLevel(amount) {
 }
 
 function onPlayerHit(dmg, dirX, dirY) {
-  const hurt = damagePlayer(player, dmg);
-  if (hurt) {
+  const { hurt, blocked } = damagePlayer(player, dmg);
+  if (hurt || blocked) {
     player.x -= dirX * 6;
     player.y -= dirY * 6;
-    popups.push({ x: player.x, y: player.y - 20, text: `-${Math.round(dmg)}`, life: 0.6, age: 0, color: "#ff6b6b" });
-    addShake(clamp(dmg * 0.15, 1, 8), 0.12);
+    if (hurt) {
+      popups.push({ x: player.x, y: player.y - 20, text: `-${Math.round(dmg)}`, life: 0.6, age: 0, color: "#ff6b6b" });
+      addShake(clamp(dmg * 0.15, 1, 8), 0.12);
+    } else {
+      popups.push({ x: player.x, y: player.y - 20, text: "BLOCKED", life: 0.6, age: 0, color: "#8fd3ff" });
+      addShake(2, 0.08);
+    }
   }
 }
 
@@ -709,8 +810,10 @@ function update(dt, now) {
 
   for (const id of WEAPON_ORDER) {
     const def = WEAPON_DEFS[id];
-    if (Input.wasPressed(def.key)) switchWeapon(id);
+    if (def.key && Input.wasPressed(def.key)) switchWeapon(id);
   }
+  const wheelStep = Input.consumeWheelStep();
+  if (wheelStep !== 0) cycleWeapon(wheelStep);
   updateWeapon(dt, now);
 
   if (Input.wasPressed("Space") || Input.wasPressed("ShiftLeft")) tryDash(player, moveVec);
@@ -774,7 +877,7 @@ function update(dt, now) {
 
   killRewardsAndCleanup();
 
-  updatePickups(pickups, dt, player, pickupRadius(player), false, (p) => {
+  updatePickups(pickups, dt, player, pickupRadius(player), isMagnetActive(player), (p) => {
     if (p.kind === "currency") grantCurrency(player, p.amount);
     else healPlayer(player, p.amount);
   });
@@ -795,6 +898,14 @@ function update(dt, now) {
   for (let i = railBeams.length - 1; i >= 0; i--) {
     railBeams[i].age += dt;
     if (railBeams[i].age >= railBeams[i].life) railBeams.splice(i, 1);
+  }
+  for (let i = laserBeams.length - 1; i >= 0; i--) {
+    laserBeams[i].age += dt;
+    if (laserBeams[i].age >= laserBeams[i].life) laserBeams.splice(i, 1);
+  }
+  for (let i = sparkParticles.length - 1; i >= 0; i--) {
+    sparkParticles[i].age += dt;
+    if (sparkParticles[i].age >= sparkParticles[i].life) sparkParticles.splice(i, 1);
   }
   updateShake(dt);
 
@@ -861,6 +972,8 @@ function render() {
   drawFlames();
   drawMuzzleFlashes();
   drawRailBeams();
+  drawLaserBeams();
+  drawSparks();
   drawProjectiles(friendlyProjectiles);
   drawProjectiles(enemyProjectiles, true);
   drawEnemies();
@@ -1321,6 +1434,43 @@ function drawRailBeams() {
   ctx.restore();
 }
 
+function drawLaserBeams() {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (const b of laserBeams) {
+    const t = clamp(b.age / b.life, 0, 1);
+    const alpha = 1 - t;
+    ctx.strokeStyle = `rgba(134,239,172,${alpha * 0.6})`;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(b.x1, b.y1);
+    ctx.lineTo(b.x2, b.y2);
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(220,255,230,${alpha})`;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(b.x1, b.y1);
+    ctx.lineTo(b.x2, b.y2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawSparks() {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (const s of sparkParticles) {
+    const t = clamp(s.age / s.life, 0, 1);
+    const x = s.x + s.vx * s.age;
+    const y = s.y + s.vy * s.age;
+    ctx.fillStyle = `rgba(255,214,102,${1 - t})`;
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(0.5, 2.5 * (1 - t)), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawFlames() {
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
@@ -1539,7 +1689,160 @@ function drawAbilityVisuals() {
         ctx.arc(player.x, player.y, ab.extra.radius * t * 0.7, 0, Math.PI * 2);
         ctx.stroke();
       }
+    } else if (ab.id === "guardianDrone" && ab.extra.pos) {
+      for (const b of ab.extra.bolts ?? []) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(56,189,248,0.6)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(b.x1, b.y1);
+        ctx.lineTo(b.x2, b.y2);
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.save();
+      ctx.translate(ab.extra.pos.x, ab.extra.pos.y);
+      ctx.rotate((ab.extra.angle || 0) * 3);
+      ctx.fillStyle = "#0f2733";
+      ctx.strokeStyle = "#38bdf8";
+      ctx.shadowColor = "#38bdf8";
+      ctx.shadowBlur = 7;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(8, 0);
+      ctx.lineTo(0, 6);
+      ctx.lineTo(-8, 0);
+      ctx.lineTo(0, -6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    } else if (ab.id === "frostTrail" && ab.extra.list) {
+      const frostLife = abilityLevelStats("frostTrail", ab.level).life;
+      for (const seg of ab.extra.list) {
+        const t = clamp(seg.age / frostLife, 0, 1);
+        ctx.fillStyle = `rgba(147,197,253,${0.32 * (1 - t)})`;
+        ctx.beginPath();
+        ctx.arc(seg.x, seg.y, 22 * (1 - t * 0.3), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (ab.id === "magnetPulse" && ab.extra.activeLeft > 0) {
+      const t = (now % 500) / 500;
+      ctx.strokeStyle = `rgba(251,191,36,${0.5 * (1 - t)})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, 30 + t * 260, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (ab.id === "swarmBots" && ab.extra.list) {
+      for (const bot of ab.extra.list) {
+        const a = Math.atan2(bot.vy, bot.vx);
+        ctx.save();
+        ctx.translate(bot.x, bot.y);
+        ctx.rotate(a);
+        ctx.fillStyle = "#a3e635";
+        ctx.shadowColor = "#a3e635";
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.moveTo(7, 0);
+        ctx.lineTo(-5, -5);
+        ctx.lineTo(-5, 5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+    } else if (ab.id === "boomerangBlade" && ab.extra.list) {
+      for (const b of ab.extra.list) {
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(now * 0.02);
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.fillStyle = "#94a3b8";
+        ctx.shadowColor = "#cbd5e1";
+        ctx.shadowBlur = 6;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, 9, 0.3, Math.PI - 0.3);
+        ctx.arc(0, 0, 9, Math.PI + 0.3, Math.PI * 2 - 0.3);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+    } else if (ab.id === "throwingKnives" && ab.extra.list) {
+      for (const k of ab.extra.list) {
+        const a = Math.atan2(k.vy, k.vx);
+        ctx.save();
+        ctx.translate(k.x, k.y);
+        ctx.rotate(a);
+        ctx.strokeStyle = "#fca5a5";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(-8, 0);
+        ctx.lineTo(8, 0);
+        ctx.stroke();
+        ctx.fillStyle = "#fca5a5";
+        ctx.beginPath();
+        ctx.moveTo(8, 0);
+        ctx.lineTo(3, -3);
+        ctx.lineTo(3, 3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+    } else if (ab.id === "fireVolcano" && ab.extra.list) {
+      for (const v of ab.extra.list) {
+        const t = clamp(v.age / 3.5, 0, 1);
+        const flicker = 0.6 + Math.sin(now * 0.015 + v.x) * 0.4;
+        const grad = ctx.createRadialGradient(v.x, v.y, 0, v.x, v.y, 55);
+        grad.addColorStop(0, `rgba(255,200,80,${0.55 * flicker * (1 - t)})`);
+        grad.addColorStop(0.6, `rgba(220,38,38,${0.4 * (1 - t)})`);
+        grad.addColorStop(1, "rgba(120,20,10,0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(v.x, v.y, 55, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (ab.id === "holyNova" && ab.extra.pulseAt) {
+      const age = (now - ab.extra.pulseAt) / 1000;
+      if (age >= 0 && age < 0.45) {
+        const t = age / 0.45;
+        ctx.strokeStyle = `rgba(253,230,138,${0.6 * (1 - t)})`;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, ab.extra.radius * t, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else if (ab.id === "ricochetRound" && ab.extra.list) {
+      for (const r of ab.extra.list) {
+        const a = Math.atan2(r.vy, r.vx);
+        ctx.save();
+        ctx.strokeStyle = "rgba(251,113,133,0.5)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(r.x - Math.cos(a) * 12, r.y - Math.sin(a) * 12);
+        ctx.lineTo(r.x, r.y);
+        ctx.stroke();
+        ctx.fillStyle = "#fb7185";
+        ctx.shadowColor = "#fb7185";
+        ctx.shadowBlur = 7;
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
     }
+  }
+
+  if (player.shieldHp > 0) {
+    const pulse = 1 + Math.sin(now * 0.006) * 0.03;
+    ctx.save();
+    ctx.strokeStyle = "rgba(96,165,250,0.75)";
+    ctx.lineWidth = 3;
+    ctx.shadowColor = "#60a5fa";
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius * 1.7 * pulse, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
 }
 

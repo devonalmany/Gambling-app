@@ -5,6 +5,12 @@ const keys = new Set();
 const pressedThisFrame = new Set();
 const mouse = { x: 0, y: 0, down: false };
 let canvasEl = null;
+let wheelAccum = 0;
+
+function onWheel(e) {
+  wheelAccum += e.deltaY;
+  e.preventDefault();
+}
 
 function onKeyDown(e) {
   const code = e.code;
@@ -45,6 +51,7 @@ export const Input = {
     canvas.addEventListener("mousemove", onMouseMove);
     canvas.addEventListener("mousedown", onMouseDown);
     window.addEventListener("mouseup", onMouseUp);
+    canvas.addEventListener("wheel", onWheel, { passive: false });
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     window.addEventListener("blur", () => {
       keys.clear();
@@ -61,6 +68,15 @@ export const Input = {
   // Call once per frame, after game logic has consumed wasPressed().
   endFrame() {
     pressedThisFrame.clear();
+  },
+  // Returns -1 (scroll down) / 0 / 1 (scroll up) once enough scroll has
+  // accumulated to count as one "step", then resets — used to cycle
+  // weapons beyond the direct 1-0 hotkeys.
+  consumeWheelStep() {
+    if (Math.abs(wheelAccum) < 40) return 0;
+    const dir = wheelAccum > 0 ? 1 : -1;
+    wheelAccum = 0;
+    return dir;
   },
   moveVector() {
     let x = 0;

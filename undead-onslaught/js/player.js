@@ -65,6 +65,7 @@ export function createPlayer(canvasW, canvasH, characterId = "rookie") {
     shopLevels: {},
     autoAim: false,
     autoFire: false,
+    shieldHp: 0,
   };
 }
 
@@ -72,12 +73,23 @@ export function xpForLevel(level) {
   return Math.round(XP.base * Math.pow(XP.growth, level - 1));
 }
 
+// Guardian Shield absorbs damage before it reaches HP. Returns which of
+// {hurt, blocked} happened so callers can show the right feedback.
 export function damagePlayer(player, amount) {
-  if (player.invulnMs > 0 || player.dashing) return false;
-  player.hp = clamp(player.hp - amount, 0, player.maxHp);
+  if (player.invulnMs > 0 || player.dashing) return { hurt: false, blocked: false };
+  let remaining = amount;
+  let blocked = false;
+  if (player.shieldHp > 0) {
+    const absorbed = Math.min(player.shieldHp, remaining);
+    player.shieldHp -= absorbed;
+    remaining -= absorbed;
+    blocked = true;
+  }
   player.invulnMs = PLAYER.hitInvulnMs;
+  if (remaining <= 0) return { hurt: false, blocked };
+  player.hp = clamp(player.hp - remaining, 0, player.maxHp);
   player.damageTakenThisWave = true;
-  return true;
+  return { hurt: true, blocked };
 }
 
 export function healPlayer(player, amount) {

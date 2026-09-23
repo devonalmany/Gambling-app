@@ -20,15 +20,16 @@ python3 -m http.server 8081
 
 ## Controls
 
-| Key            | Action              |
-| -------------- | ------------------- |
-| WASD / Arrows  | Move                |
-| Mouse          | Aim & Shoot         |
-| Space          | Dash                |
-| E              | Melee shove         |
-| 1–9            | Switch weapon       |
-| F              | Toggle auto-fire    |
-| Esc            | Pause               |
+| Key            | Action                              |
+| -------------- | ------------------------------------ |
+| WASD / Arrows  | Move                                |
+| Mouse          | Aim & Shoot                         |
+| Space          | Dash                                |
+| E              | Melee shove                         |
+| 1–9, 0         | Switch to weapon slot (first 10)    |
+| Mouse Wheel    | Cycle through every unlocked weapon |
+| F              | Toggle auto-fire                    |
+| Esc            | Pause                               |
 
 ## What's implemented
 
@@ -58,28 +59,65 @@ python3 -m http.server 8081
   player; clearing a wave opens a between-wave shop, then the next (larger,
   faster, tougher) wave begins. Health regenerates slowly; a dash gives a
   short burst of invulnerability to escape being surrounded.
-- **9 weapons, all infinite ammo** — Pistol (starting weapon), Shotgun,
-  SMG, Assault Rifle, Sniper Rifle, Flamethrower (cone tick damage that
-  also ignites zombies for ~2s of lingering burn damage after you stop
-  firing), Grenade Launcher (arcing AOE), Minigun (spins up tighter
-  accuracy the longer you hold the trigger), and **Railgun** (an instant
-  hitscan beam that pierces every zombie standing in its line, each
-  rolling its own crit independently). No magazines, no reloading —
-  firing is gated only by each weapon's fire-rate cooldown. All but the
-  Pistol are locked until bought in the shop. Hold the mouse to fire, or
-  press **F** to toggle Auto-Fire and keep the trigger held automatically
+- **13 weapons, all infinite ammo** — no magazines, no reloading; firing
+  is gated only by each weapon's fire-rate cooldown. All but the Pistol
+  are locked until bought in the shop. Hold the mouse to fire, or press
+  **F** to toggle Auto-Fire and keep the trigger held automatically
   whenever zombies are on the field.
+  - **Pistol** — infinite starting sidearm.
+  - **Shotgun**, **SMG**, **Assault Rifle**, **Sniper Rifle**, **Minigun**
+    (spins up tighter accuracy the longer you hold the trigger) — the
+    core projectile lineup.
+  - **Flamethrower** — cone tick damage that also ignites zombies for
+    ~2s of lingering burn damage after you stop firing. The only weapon
+    with an Extended Range upgrade.
+  - **Grenade Launcher** — arcing lobbed AOE.
+  - **Railgun** — an instant hitscan beam that pierces every zombie
+    standing in its line, each rolling its own crit independently.
+  - **Crossbow** — innately pierces 2 extra targets before the Piercing
+    upgrade even applies.
+  - **Laser Rifle** — instant hitscan like the Railgun, but single-target
+    only (no pierce) with a much faster fire rate.
+  - **Rocket Launcher** — every shot is explosive, always, on top of
+    whatever the Explosive Rounds upgrade adds.
+  - **Chainsaw** — continuous narrow-arc melee damage at point-blank
+    range instead of firing a projectile.
 - **Weapon upgrade tracks** — per-weapon Damage, Fire Rate, Crit Chance,
   Piercing, and Explosive Rounds, each with independent levels and scaling
-  cost (tracks that don't apply to a given weapon's firing mode, like
-  Piercing on the Flamethrower, are hidden). The Flamethrower alone also
-  gets **Extended Range**, pushing its cone further out per level.
-- **6 auto-triggering abilities** — Orbiting Blades, Homing Shards, Static
-  Field (damage aura), Landmine Drop, Chain Lightning, and Shockwave Stomp.
-  Offered on level-up alongside passive stat cards; each levels 1–5 with
-  scaling effects. Ability slots start at 4, expandable to 6 via a level-up
-  card. The first ability is guaranteed by wave 3 even without a natural
-  level-up.
+  cost (tracks that don't apply to a given weapon's firing mode — e.g.
+  Piercing on the Flamethrower or the Laser Rifle — are hidden). The
+  Flamethrower alone also gets **Extended Range**, pushing its cone
+  further out per level.
+- **16 auto-triggering abilities** — offered on level-up alongside passive
+  stat cards; each levels 1–5 with scaling effects. Ability slots start at
+  4, expandable to 6 via a level-up card, so you're always choosing 4-6
+  out of the full roster below. The first ability is guaranteed by wave 3
+  even without a natural level-up.
+  - **Orbiting Blades**, **Homing Shards**, **Static Field** (damage
+    aura), **Landmine Drop**, **Chain Lightning**, **Shockwave Stomp** —
+    the original six.
+  - **Guardian Drone** — a companion that orbits you and auto-zaps
+    anything that wanders into range.
+  - **Frost Trail** — leaves a chilling, damaging trail behind you as you
+    move; anything standing in it gets slowed.
+  - **Magnet Pulse** — periodically pulls every scrap/health drop on the
+    field straight to you.
+  - **Swarm Bots** — launches small seeker bots that home in and
+    self-detonate for AOE damage on contact.
+  - **Boomerang Blade** — thrown in whatever direction you're currently
+    aiming; flies out, hits everything in its path, then arcs back
+    through again on the way home.
+  - **Throwing Knives** — a volley of piercing knives toward the nearest
+    zombie.
+  - **Fire Volcano** — erupts a lingering burning patch near a random
+    nearby zombie.
+  - **Holy Nova** — a big periodic burst around you that damages enemies
+    *and* heals you a little each pulse.
+  - **Ricochet Round** — a projectile with real travel time that bounces
+    between multiple nearby zombies (as opposed to Chain Lightning's
+    instant all-at-once zap).
+  - **Guardian Shield** — periodically grants a shield pool that absorbs
+    incoming damage before it touches your HP.
 - **Between-wave shop** — spend this run's scrap on weapon unlocks/upgrades
   or permanent-for-the-run player perks (max HP, move speed, dash cooldown,
   currency gain, regen). A one-time **Auto-Aim Module** (⚙500) makes
@@ -112,10 +150,6 @@ Not yet implemented:
 - **Ability evolutions/fusions** (e.g. a maxed ability + a high-level
   weapon merging into a stronger fused effect) — abilities level 1–5 on
   their own but don't cross-evolve.
-- Four abilities from the original list aren't implemented: Guardian
-  Drone, Frost Trail, Magnet Pulse, and Swarm Bots. The six that are
-  implemented cover the same design space (single-target homing, AOE aura,
-  proximity melee, trap, chain, and knockback-burst).
 - "Headshots" are represented as a flat per-weapon crit chance rather than
   literal hit-zone collision.
 - No sprite art — flat vector shapes (circles/simple polygons), by design,
@@ -140,7 +174,7 @@ js/player.js                player state, movement, dash, XP/leveling
 js/weapons.js                weapon defs + upgrade-track math
 js/enemies.js                zombie type defs, spawning, AI
 js/projectiles.js            bullet/grenade pool
-js/abilities.js              the 6 auto-triggering abilities
+js/abilities.js              the 16 auto-triggering abilities
 js/levelup.js                level-up card generation/selection
 js/waves.js                  wave scaling, spawn queue, boss waves
 js/shop.js                   between-wave shop purchases

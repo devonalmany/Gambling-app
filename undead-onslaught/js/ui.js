@@ -212,6 +212,8 @@ function visibleTracks(def) {
   if (def.mode === "cone") return tracks.filter((t) => t.id !== "pierce" && t.id !== "explosive");
   if (def.mode === "lob") return tracks.filter((t) => t.id !== "pierce");
   if (def.mode === "beam") return tracks.filter((t) => t.id !== "pierce" && t.id !== "explosive");
+  if (def.mode === "hitscan") return tracks.filter((t) => t.id !== "pierce" && t.id !== "explosive");
+  if (def.mode === "melee") return tracks.filter((t) => t.id !== "pierce" && t.id !== "explosive");
   return tracks;
 }
 

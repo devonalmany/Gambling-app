@@ -11,7 +11,8 @@ export const UPGRADE_TRACKS = [
 ];
 
 // mode: "projectile" (bullets), "cone" (continuous tick damage, flamethrower),
-// "lob" (arcing AOE grenade), "beam" (instant piercing hitscan, railgun)
+// "lob" (arcing AOE grenade), "beam" (instant piercing hitscan, railgun),
+// "hitscan" (instant single-target beam, no pierce), "melee" (chainsaw)
 export const WEAPON_DEFS = {
   pistol: {
     id: "pistol",
@@ -131,6 +132,55 @@ export const WEAPON_DEFS = {
     beamWidth: 7,
     critChance: 0.15,
   },
+  crossbow: {
+    id: "crossbow",
+    name: "Crossbow",
+    key: "Digit0",
+    unlockCost: 130,
+    mode: "projectile",
+    damage: 20,
+    pellets: 1,
+    fireRate: 1.6,
+    bulletSpeed: 820,
+    spreadDeg: 1,
+    basePierce: 2, // pierces this many enemies before Piercing upgrades apply
+    critChance: 0.1,
+  },
+  laserRifle: {
+    id: "laserRifle",
+    name: "Laser Rifle",
+    unlockCost: 200,
+    mode: "hitscan", // instant single-target beam, no pierce — reach it via mouse wheel
+    damage: 10,
+    fireRate: 6.5,
+    range: 620,
+    critChance: 0.1,
+  },
+  rocketLauncher: {
+    id: "rocketLauncher",
+    name: "Rocket Launcher",
+    unlockCost: 340,
+    mode: "projectile",
+    damage: 85,
+    pellets: 1,
+    fireRate: 0.7,
+    bulletSpeed: 520,
+    spreadDeg: 1,
+    alwaysExplosive: true,
+    explosionRadius: 75,
+    critChance: 0.05,
+  },
+  chainsaw: {
+    id: "chainsaw",
+    name: "Chainsaw",
+    unlockCost: 260,
+    mode: "melee", // continuous narrow-arc damage at point-blank range
+    damage: 10, // per tick
+    fireRate: 8,
+    range: 58,
+    coneDeg: 70,
+    critChance: 0.0,
+  },
 };
 
 export const WEAPON_ORDER = [
@@ -143,6 +193,10 @@ export const WEAPON_ORDER = [
   "grenadeLauncher",
   "minigun",
   "railgun",
+  "crossbow",
+  "laserRifle",
+  "rocketLauncher",
+  "chainsaw",
 ];
 
 export function emptyUpgrades() {
@@ -164,9 +218,9 @@ export function effectiveStats(def, upgrades) {
     fireRate: def.fireRate * fireRateMul,
     range: (def.range ?? 0) * (1 + upgrades.range * 0.15),
     critChance: Math.min(0.75, (def.critChance || 0) + upgrades.crit * 0.06),
-    pierce: upgrades.pierce,
-    explosive: upgrades.explosive > 0,
-    explosionRadius: 30 + upgrades.explosive * 18,
+    pierce: (def.basePierce ?? 0) + upgrades.pierce,
+    explosive: !!def.alwaysExplosive || upgrades.explosive > 0,
+    explosionRadius: Math.max(def.explosionRadius ?? 0, 30 + upgrades.explosive * 18),
     explosionDamageMul: 0.5,
   };
 }
