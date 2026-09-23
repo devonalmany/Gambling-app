@@ -773,20 +773,6 @@ function spawnDeathBurst(x, y, color, big) {
   deathParticles.push({ ring: true, x, y, color, life: 0.3, age: 0, maxR: big ? 46 : 28 });
 }
 
-// Kill-streak callouts: consecutive kills within a short window escalate
-// through a set of milestone labels, shown as a big banner-style popup.
-const STREAK_MILESTONES = { 2: "DOUBLE KILL", 3: "TRIPLE KILL", 4: "MULTI KILL", 5: "RAMPAGE", 7: "UNSTOPPABLE", 10: "GODLIKE" };
-function streakLabelFor(streak) {
-  if (STREAK_MILESTONES[streak]) return STREAK_MILESTONES[streak];
-  if (streak > 10 && streak % 5 === 0) return "GODLIKE";
-  return null;
-}
-let killStreak = 0;
-let killStreakTimer = 0;
-let lastStreakPopupAt = -Infinity;
-let streakPopupStack = 0;
-const streakPopups = [];
-
 function killRewardsAndCleanup() {
   for (let i = enemies.length - 1; i >= 0; i--) {
     const z = enemies[i];
@@ -797,20 +783,6 @@ function killRewardsAndCleanup() {
     player.kills += 1;
     spawnDeathBurst(z.x, z.y, z.color ?? "#8fe36b", !!z.isBoss || z.maxHp > 40);
     popups.push({ x: z.x, y: z.y, text: z.isBoss ? "BOSS DOWN" : "+" + z.xp + "xp", life: 0.8, age: 0, color: "#ffe066" });
-
-    killStreakTimer = 1.4;
-    killStreak += 1;
-    const label = streakLabelFor(killStreak);
-    if (label) {
-      // Back-to-back milestones (e.g. a big AOE kill jumping several
-      // thresholds at once) stack downward instead of overlapping.
-      if (elapsed - lastStreakPopupAt > 0.5) streakPopupStack = 0;
-      lastStreakPopupAt = elapsed;
-      streakPopups.push({ x: bounds.w / 2, y: bounds.h * 0.3 + streakPopupStack * 44, text: label, life: 0.9, age: 0 });
-      streakPopupStack += 1;
-      if (label === "UNSTOPPABLE" || label === "GODLIKE") addShake(3, 0.15);
-    }
-
     enemies.splice(i, 1);
   }
 }
@@ -1018,14 +990,6 @@ function update(dt, now) {
     deathParticles[i].age += dt;
     if (deathParticles[i].age >= deathParticles[i].life) deathParticles.splice(i, 1);
   }
-  for (let i = streakPopups.length - 1; i >= 0; i--) {
-    streakPopups[i].age += dt;
-    if (streakPopups[i].age >= streakPopups[i].life) streakPopups.splice(i, 1);
-  }
-  if (killStreakTimer > 0) {
-    killStreakTimer -= dt;
-    if (killStreakTimer <= 0) killStreak = 0;
-  }
   updateShake(dt);
 
   updateWaveManager(waveManager, dt, enemies, bounds);
@@ -1101,7 +1065,6 @@ function render() {
   drawDeathBursts();
   drawPlayer();
   drawPopups();
-  drawStreakPopups();
 
   if (currentMap.modifiers.fogAlways || waveManager.wave >= 16) drawFog();
   if (player.hp / player.maxHp < 0.3) drawLowHealthVignette();
@@ -1765,31 +1728,6 @@ function drawDeathBursts() {
     ctx.globalAlpha = 1 - t;
     ctx.fillStyle = d.color;
     ctx.fillRect(-d.size / 2, -d.size / 2, d.size, d.size);
-    ctx.restore();
-  }
-  ctx.restore();
-}
-
-function drawStreakPopups() {
-  ctx.save();
-  ctx.textAlign = "center";
-  ctx.lineJoin = "round";
-  for (const s of streakPopups) {
-    const t = clamp(s.age / s.life, 0, 1);
-    const scale = t < 0.2 ? 1.3 - t * 1.5 : 1;
-    const alpha = t > 0.6 ? 1 - (t - 0.6) / 0.4 : 1;
-    ctx.save();
-    ctx.translate(s.x, s.y - t * 20);
-    ctx.scale(scale, scale);
-    ctx.globalAlpha = alpha;
-    ctx.font = "700 34px 'Teko', sans-serif";
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = "rgba(0,0,0,0.8)";
-    ctx.strokeText(s.text, 0, 0);
-    ctx.fillStyle = "#ffd23f";
-    ctx.shadowColor = "#ffd23f";
-    ctx.shadowBlur = 16;
-    ctx.fillText(s.text, 0, 0);
     ctx.restore();
   }
   ctx.restore();

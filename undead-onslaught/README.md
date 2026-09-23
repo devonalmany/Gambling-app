@@ -137,10 +137,6 @@ python3 -m http.server 8081
   scaled to damage taken and explosions, a fog vignette that closes in from
   wave 16 on (or from wave 1 on the Boneyard), and brief invulnerability
   after taking a hit so one bad surround doesn't insta-kill you.
-- **Kill-streak callouts** — chaining kills within ~1.4s escalates through
-  Double Kill → Triple Kill → Multi Kill → Rampage → Unstoppable → Godlike
-  (looping every 5 more kills), banner-style text that stacks cleanly
-  instead of overlapping when several land at once.
 - **Battleground atmosphere** — each map's ambient particles are re-skinned
   to match it: drifting embers over the Foundry, slow fog wisps over the
   Boneyard, tumbling leaves over Suburbia Ruins, plain dust over the
