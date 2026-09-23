@@ -15,6 +15,10 @@
   <div id="app">
     <canvas id="game"></canvas>
 
+    <!-- World-space overlay: damage popups, boss name/HP bar — positioned
+         each frame by projecting their 3D world position to screen space. -->
+    <div id="worldUI"></div>
+
     <!-- Heads-up display, visible only while playing/paused -->
     <div id="hud" class="hidden">
       <div class="hud-top-left">

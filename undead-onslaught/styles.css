@@ -80,11 +80,71 @@ body {
   mix-blend-mode: multiply;
 }
 
+/* Low-health pulse, toggled via .low-hp on #app — replaces the old
+   canvas-drawn vignette now that the world is a real 3D scene. */
+#app::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, rgba(180, 20, 20, 0) 45%, rgba(180, 20, 20, 0.55) 100%);
+}
+#app.low-hp::before {
+  opacity: 1;
+  animation: pulse-danger 1s ease-in-out infinite;
+}
+
 canvas#game {
   position: absolute;
   inset: 0;
   display: block;
   cursor: crosshair;
+}
+
+/* World-space overlay: elements are pooled divs positioned each frame by
+   projecting a 3D point to screen space (see render3d.js). */
+#worldUI {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+.world-popup {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.9), 0 0 3px rgba(0, 0, 0, 0.9), 0 2px 3px rgba(0, 0, 0, 0.9);
+}
+.world-hpbar {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 70px;
+  height: 7px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.6);
+}
+.world-hpbar .fill {
+  height: 100%;
+  background: #f59e0b;
+}
+.world-hpbar.boss .fill {
+  background: #f43f5e;
+}
+.world-name {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14px;
+  color: #f4f4f4;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
 }
 
 .hidden {

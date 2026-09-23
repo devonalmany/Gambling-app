@@ -1,12 +1,14 @@
 # UNDEAD ONSLAUGHT
 
-A top-down 2D zombie survival shooter, browser-based. Pick a survivor and a
-battleground, fight escalating waves, earn scrap to upgrade weapons between
-waves, and pick auto-triggering abilities as you level up mid-fight. There's
-no win condition — only how long you survive.
+A top-down zombie survival shooter, browser-based, rendered in real 3D. Pick
+a survivor and a battleground, fight escalating waves, earn scrap to upgrade
+weapons between waves, and pick auto-triggering abilities as you level up
+mid-fight. There's no win condition — only how long you survive.
 
-No build step, no dependencies. Plain HTML/CSS/JS (ES modules), same as the
-rest of this repo.
+No build step. Plain HTML/CSS/JS (ES modules), same as the rest of this
+repo — the only third-party code is [Three.js](https://threejs.org/),
+vendored directly into `js/vendor/` (not fetched from a CDN, so the game
+works fully offline and isn't at the mercy of a CDN being reachable).
 
 ## Running it
 
@@ -33,6 +35,20 @@ python3 -m http.server 8081
 
 ## What's implemented
 
+- **Real 3D rendering** (`js/render3d.js`) — the world is an actual
+  Three.js scene, not a flat canvas: low-poly primitive shapes for the
+  player/zombies (in the same spirit as the game's earlier flat-vector-shape
+  look, just extruded into 3D — there's no modeling/animation pipeline
+  here, so nothing is a sculpted or rigged character model), a fixed angled
+  camera so the whole arena stays in view the way it always has, real
+  directional + ambient + hemisphere lighting, cast shadows, and distance
+  fog. Every other module (`player.js`, `enemies.js`, `weapons.js`,
+  `abilities.js`, `waves.js`, ...) is still pure 2D-coordinate simulation
+  state that knows nothing about rendering — `render3d.js` is the only file
+  that touches Three.js, and it just maps that simulation's `x`/`y` onto a
+  3D ground plane (world X = game x, world Z = game y) each frame. Mouse
+  aim works by raycasting the cursor against that ground plane, since the
+  camera is angled rather than a flat 1:1 projection.
 - **Loadout select** — before each run, pick one of **4 survivors** and one
   of **4 battlegrounds** on a dedicated loadout screen. "Try Again" after
   death reuses your last loadout instead of sending you back through it.
@@ -134,9 +150,11 @@ python3 -m http.server 8081
 - **Feel** — hit flashes, floating damage numbers, impact sparks on every
   bullet/beam hit (bigger and brighter on crits), knockback, a gib burst +
   shockwave ring on every kill, a muzzle flash on every shot, screen shake
-  scaled to damage taken and explosions, a fog vignette that closes in from
-  wave 16 on (or from wave 1 on the Boneyard), and brief invulnerability
-  after taking a hit so one bad surround doesn't insta-kill you.
+  scaled to damage taken and explosions, real depth fog that closes in from
+  wave 16 on (or from wave 1 on the Boneyard), dynamic shadows cast by the
+  sun light and a soft light that follows the player, and brief
+  invulnerability after taking a hit so one bad surround doesn't insta-kill
+  you.
 - **Battleground atmosphere** — each map's ambient particles are re-skinned
   to match it: drifting embers over the Foundry, slow fog wisps over the
   Boneyard, tumbling leaves over Suburbia Ruins, plain dust over the
@@ -161,8 +179,9 @@ Not yet implemented:
   their own but don't cross-evolve.
 - "Headshots" are represented as a flat per-weapon crit chance rather than
   literal hit-zone collision.
-- No sprite art — flat vector shapes (circles/simple polygons), by design,
-  so many on-screen zombies stay readable at once.
+- No modeled or animated characters — everyone and everything is a
+  low-poly primitive shape (spheres, capsules, icosahedra, ...), by design,
+  so many on-screen zombies stay readable and cheap to render at once.
 - **Maps are the same arena, re-dressed.** All four battlegrounds are the
   same rectangular canvas with a different painted ground texture,
   currency/XP modifier, and (Foundry only) a few hazard zones — not
@@ -176,6 +195,8 @@ Not yet implemented:
 ```
 index.html / styles.css     shell + HUD/menu DOM
 js/main.js                  game loop, input → world → render orchestration
+js/render3d.js              the entire Three.js presentation layer
+js/vendor/                  vendored Three.js build (no CDN dependency)
 js/constants.js             tunable balance numbers
 js/characters.js             the 4 playable characters + stat mods
 js/maps.js                   the 4 battlegrounds + modifiers/hazards
