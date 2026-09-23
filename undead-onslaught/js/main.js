@@ -184,29 +184,58 @@ function choiceWeighted(tones) {
 window.addEventListener("resize", resize);
 resize();
 Input.init(canvas);
-initAmbientParticles();
+refreshAmbientParticles();
 
-// ---- Ambient dust motes ----------------------------------------------------
-function initAmbientParticles() {
-  ambientParticles = Array.from({ length: 26 }, () => ({
+// ---- Ambient particles, re-skinned per battleground ------------------------
+// Each map gets its own atmosphere instead of one generic dust field:
+// drifting embers over the Foundry's vents, slow fog wisps in the Boneyard,
+// tumbling dead leaves in Suburbia, and plain dust over the Compound.
+function ambientProfileFor(mapId) {
+  switch (mapId) {
+    case "foundry":
+      return { count: 30, kind: "ember", colors: ["#ff9a3c", "#ffcf7a", "#ff6a1f"], vy: [-70, -30], vx: [-8, 8], r: [1, 2.6], a: [0.25, 0.6] };
+    case "boneyard":
+      return { count: 14, kind: "fog", colors: ["#cfd8d2"], vy: [-6, 6], vx: [-9, 9], r: [40, 90], a: [0.03, 0.08] };
+    case "suburbia":
+      return { count: 20, kind: "leaf", colors: ["#c99a3d", "#8a9a3d", "#a3722c"], vy: [10, 26], vx: [-14, 14], r: [3, 5.5], a: [0.35, 0.7] };
+    default:
+      return { count: 26, kind: "dust", colors: ["#cdd8c4"], vy: [-10, -3], vx: [-6, 6], r: [0.8, 2.2], a: [0.05, 0.16] };
+  }
+}
+function refreshAmbientParticles() {
+  const profile = ambientProfileFor(currentMap.id);
+  ambientParticles = Array.from({ length: profile.count }, () => ({
     x: randRange(0, bounds.w),
     y: randRange(0, bounds.h),
-    vx: randRange(-6, 6),
-    vy: randRange(-10, -3),
-    r: randRange(0.8, 2.2),
-    a: randRange(0.05, 0.16),
+    vx: randRange(profile.vx[0], profile.vx[1]),
+    vy: randRange(profile.vy[0], profile.vy[1]),
+    r: randRange(profile.r[0], profile.r[1]),
+    a: randRange(profile.a[0], profile.a[1]),
+    rot: randRange(0, Math.PI * 2),
+    vr: randRange(-1.2, 1.2),
+    sway: randRange(0, Math.PI * 2),
+    kind: profile.kind,
+    color: profile.colors[Math.floor(Math.random() * profile.colors.length)],
   }));
 }
 function updateAmbientParticles(dt) {
   for (const p of ambientParticles) {
-    p.x += p.vx * dt;
+    p.sway += dt;
+    const swayX = p.kind === "leaf" || p.kind === "ember" ? Math.sin(p.sway * 1.6) * (p.kind === "leaf" ? 18 : 10) * dt : 0;
+    p.x += p.vx * dt + swayX;
     p.y += p.vy * dt;
-    if (p.y < -10) {
-      p.y = bounds.h + 10;
+    p.rot += p.vr * dt;
+    const pad = p.kind === "fog" ? p.r : 10;
+    if (p.y < -pad) {
+      p.y = bounds.h + pad;
       p.x = randRange(0, bounds.w);
     }
-    if (p.x < -10) p.x = bounds.w + 10;
-    if (p.x > bounds.w + 10) p.x = -10;
+    if (p.y > bounds.h + pad) {
+      p.y = -pad;
+      p.x = randRange(0, bounds.w);
+    }
+    if (p.x < -pad) p.x = bounds.w + pad;
+    if (p.x > bounds.w + pad) p.x = -pad;
   }
 }
 
@@ -260,6 +289,7 @@ function renderLoadout() {
 
 function startGame() {
   currentMap = getMap(selectedMapId);
+  refreshAmbientParticles();
   player = createPlayer(bounds.w, bounds.h, selectedCharacterId);
   player.perks.currencyGainMul *= currentMap.modifiers.currencyMul;
   player.perks.xpGainMul *= currentMap.modifiers.xpMul;
@@ -290,8 +320,9 @@ function startGame() {
 function beginWave(wave) {
   player.damageTakenThisWave = false;
   startWave(waveManager, wave, enemies, bounds);
-  UI.renderWaveBanner(wave, false, 0);
-  bannerTimer = 1.6;
+  UI.renderWaveBanner(wave, false, 0, waveManager.isBossWave);
+  bannerTimer = waveManager.isBossWave ? 2.2 : 1.6;
+  if (waveManager.isBossWave) addShake(8, 0.5);
   if (wave === 3 && player.abilities.length === 0) {
     forceAbilityCardQueued = true;
   }
@@ -544,6 +575,7 @@ function fireRailgun(angle, stats, def) {
       age: 0,
       color: crit ? "#ff5c5c" : "#e2ecff",
     });
+    spawnImpactSparks(z.x, z.y, crit ? "#ff5c5c" : "#bfe8ff", crit);
   }
   railBeams.push({
     x1: player.x,
@@ -590,6 +622,7 @@ function fireLaser(angle, stats, def) {
       age: 0,
       color: crit ? "#ff5c5c" : "#bbf7d0",
     });
+    spawnImpactSparks(closest.x, closest.y, crit ? "#ff5c5c" : "#86efac", crit);
   }
   laserBeams.push({
     x1: player.x,
@@ -615,6 +648,27 @@ function spawnSparkBurst(x, y, angle) {
       vy: Math.sin(a) * speed,
       life: randRange(0.12, 0.22),
       age: 0,
+      color: "#ffd666",
+    });
+  }
+}
+
+// Impact sparks at a hit point, radiating in every direction — used for
+// every bullet/beam hit so contact reads as an actual impact, not just a
+// floating number. Crits get more of them and a brighter color.
+function spawnImpactSparks(x, y, color, crit) {
+  const count = crit ? 9 : 4;
+  for (let i = 0; i < count; i++) {
+    const a = randRange(0, Math.PI * 2);
+    const speed = randRange(80, crit ? 260 : 160);
+    sparkParticles.push({
+      x,
+      y,
+      vx: Math.cos(a) * speed,
+      vy: Math.sin(a) * speed,
+      life: randRange(0.1, crit ? 0.26 : 0.18),
+      age: 0,
+      color,
     });
   }
 }
@@ -695,6 +749,44 @@ function damageEnemy(z, amount) {
   z.hitFlashUntil = performance.now() + 90;
 }
 
+// Gib burst + shockwave ring at a kill site — the only visual sign a kill
+// happened used to be the enemy silently vanishing.
+const deathParticles = [];
+function spawnDeathBurst(x, y, color, big) {
+  const count = big ? 14 : 7;
+  for (let i = 0; i < count; i++) {
+    const a = randRange(0, Math.PI * 2);
+    const speed = randRange(60, big ? 260 : 170);
+    deathParticles.push({
+      x,
+      y,
+      vx: Math.cos(a) * speed,
+      vy: Math.sin(a) * speed,
+      size: randRange(2.5, big ? 7 : 5),
+      rot: randRange(0, Math.PI * 2),
+      vr: randRange(-8, 8),
+      color,
+      life: randRange(0.35, 0.55),
+      age: 0,
+    });
+  }
+  deathParticles.push({ ring: true, x, y, color, life: 0.3, age: 0, maxR: big ? 46 : 28 });
+}
+
+// Kill-streak callouts: consecutive kills within a short window escalate
+// through a set of milestone labels, shown as a big banner-style popup.
+const STREAK_MILESTONES = { 2: "DOUBLE KILL", 3: "TRIPLE KILL", 4: "MULTI KILL", 5: "RAMPAGE", 7: "UNSTOPPABLE", 10: "GODLIKE" };
+function streakLabelFor(streak) {
+  if (STREAK_MILESTONES[streak]) return STREAK_MILESTONES[streak];
+  if (streak > 10 && streak % 5 === 0) return "GODLIKE";
+  return null;
+}
+let killStreak = 0;
+let killStreakTimer = 0;
+let lastStreakPopupAt = -Infinity;
+let streakPopupStack = 0;
+const streakPopups = [];
+
 function killRewardsAndCleanup() {
   for (let i = enemies.length - 1; i >= 0; i--) {
     const z = enemies[i];
@@ -703,7 +795,22 @@ function killRewardsAndCleanup() {
     spawnCurrencyDrop(pickups, z.x, z.y, z.currency);
     maybeSpawnHealthDrop(pickups, z.x, z.y);
     player.kills += 1;
+    spawnDeathBurst(z.x, z.y, z.color ?? "#8fe36b", !!z.isBoss || z.maxHp > 40);
     popups.push({ x: z.x, y: z.y, text: z.isBoss ? "BOSS DOWN" : "+" + z.xp + "xp", life: 0.8, age: 0, color: "#ffe066" });
+
+    killStreakTimer = 1.4;
+    killStreak += 1;
+    const label = streakLabelFor(killStreak);
+    if (label) {
+      // Back-to-back milestones (e.g. a big AOE kill jumping several
+      // thresholds at once) stack downward instead of overlapping.
+      if (elapsed - lastStreakPopupAt > 0.5) streakPopupStack = 0;
+      lastStreakPopupAt = elapsed;
+      streakPopups.push({ x: bounds.w / 2, y: bounds.h * 0.3 + streakPopupStack * 44, text: label, life: 0.9, age: 0 });
+      streakPopupStack += 1;
+      if (label === "UNSTOPPABLE" || label === "GODLIKE") addShake(3, 0.15);
+    }
+
     enemies.splice(i, 1);
   }
 }
@@ -907,6 +1014,18 @@ function update(dt, now) {
     sparkParticles[i].age += dt;
     if (sparkParticles[i].age >= sparkParticles[i].life) sparkParticles.splice(i, 1);
   }
+  for (let i = deathParticles.length - 1; i >= 0; i--) {
+    deathParticles[i].age += dt;
+    if (deathParticles[i].age >= deathParticles[i].life) deathParticles.splice(i, 1);
+  }
+  for (let i = streakPopups.length - 1; i >= 0; i--) {
+    streakPopups[i].age += dt;
+    if (streakPopups[i].age >= streakPopups[i].life) streakPopups.splice(i, 1);
+  }
+  if (killStreakTimer > 0) {
+    killStreakTimer -= dt;
+    if (killStreakTimer <= 0) killStreak = 0;
+  }
   updateShake(dt);
 
   updateWaveManager(waveManager, dt, enemies, bounds);
@@ -934,6 +1053,8 @@ function applyHit(p, z) {
   const a = angleTo(p.x, p.y, z.x, z.y);
   applyKnockback(z, Math.cos(a), Math.sin(a), 40);
   popups.push({ x: z.x, y: z.y - 10, text: p.crit ? `${Math.round(p.damage)}!` : `${Math.round(p.damage)}`, life: 0.45, age: 0, color: p.crit ? "#ff5c5c" : "#f4f4f4" });
+  spawnImpactSparks(p.x, p.y, p.crit ? "#ff5c5c" : p.color, p.crit);
+  if (p.crit) addShake(1.5, 0.05);
 }
 
 function explode(p) {
@@ -977,8 +1098,10 @@ function render() {
   drawProjectiles(friendlyProjectiles);
   drawProjectiles(enemyProjectiles, true);
   drawEnemies();
+  drawDeathBursts();
   drawPlayer();
   drawPopups();
+  drawStreakPopups();
 
   if (currentMap.modifiers.fogAlways || waveManager.wave >= 16) drawFog();
   if (player.hp / player.maxHp < 0.3) drawLowHealthVignette();
@@ -1017,14 +1140,49 @@ function drawArenaCorners() {
 }
 
 function drawAmbientParticles() {
-  ctx.fillStyle = "#cdd8c4";
+  ctx.save();
   for (const p of ambientParticles) {
-    ctx.globalAlpha = p.a;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    ctx.fill();
+    if (p.kind === "ember") {
+      ctx.globalCompositeOperation = "lighter";
+      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 2.2);
+      grad.addColorStop(0, hexAlpha(p.color, p.a));
+      grad.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (p.kind === "fog") {
+      ctx.globalCompositeOperation = "source-over";
+      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+      grad.addColorStop(0, hexAlpha(p.color, p.a));
+      grad.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (p.kind === "leaf") {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = p.a;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, p.r, p.r * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = p.a;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
   }
-  ctx.globalAlpha = 1;
+  ctx.restore();
 }
 
 function drawPlayer() {
@@ -1463,7 +1621,7 @@ function drawSparks() {
     const t = clamp(s.age / s.life, 0, 1);
     const x = s.x + s.vx * s.age;
     const y = s.y + s.vy * s.age;
-    ctx.fillStyle = `rgba(255,214,102,${1 - t})`;
+    ctx.fillStyle = hexAlpha(s.color ?? "#ffd666", 1 - t);
     ctx.beginPath();
     ctx.arc(x, y, Math.max(0.5, 2.5 * (1 - t)), 0, Math.PI * 2);
     ctx.fill();
@@ -1584,6 +1742,57 @@ function drawPopups() {
     ctx.fillText(t.text, t.x, t.y);
   }
   ctx.globalAlpha = 1;
+}
+
+function drawDeathBursts() {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (const d of deathParticles) {
+    const t = clamp(d.age / d.life, 0, 1);
+    if (d.ring) {
+      ctx.strokeStyle = hexAlpha(d.color, (1 - t) * 0.6);
+      ctx.lineWidth = 3 * (1 - t);
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.maxR * t, 0, Math.PI * 2);
+      ctx.stroke();
+      continue;
+    }
+    const x = d.x + d.vx * d.age;
+    const y = d.y + d.vy * d.age;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(d.rot + d.vr * d.age);
+    ctx.globalAlpha = 1 - t;
+    ctx.fillStyle = d.color;
+    ctx.fillRect(-d.size / 2, -d.size / 2, d.size, d.size);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawStreakPopups() {
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.lineJoin = "round";
+  for (const s of streakPopups) {
+    const t = clamp(s.age / s.life, 0, 1);
+    const scale = t < 0.2 ? 1.3 - t * 1.5 : 1;
+    const alpha = t > 0.6 ? 1 - (t - 0.6) / 0.4 : 1;
+    ctx.save();
+    ctx.translate(s.x, s.y - t * 20);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = alpha;
+    ctx.font = "700 34px 'Teko', sans-serif";
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "rgba(0,0,0,0.8)";
+    ctx.strokeText(s.text, 0, 0);
+    ctx.fillStyle = "#ffd23f";
+    ctx.shadowColor = "#ffd23f";
+    ctx.shadowBlur = 16;
+    ctx.fillText(s.text, 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 function drawAbilityVisuals() {

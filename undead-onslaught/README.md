@@ -131,11 +131,24 @@ python3 -m http.server 8081
   kills (pulled in by a pickup radius stat), wave-clear and no-damage
   bonuses, instant XP on kill. Runs are saved to a local high-score list
   (rounds survived, kills, time alive) via `localStorage` — no backend.
-- **Feel** — hit flashes, floating damage numbers, knockback, crit callouts,
-  a muzzle flash on every shot, screen shake scaled to damage taken and
-  explosions, a fog vignette that closes in from wave 16 on (or from wave 1
-  on the Boneyard), and brief invulnerability after taking a hit so one bad
-  surround doesn't insta-kill you.
+- **Feel** — hit flashes, floating damage numbers, impact sparks on every
+  bullet/beam hit (bigger and brighter on crits), knockback, a gib burst +
+  shockwave ring on every kill, a muzzle flash on every shot, screen shake
+  scaled to damage taken and explosions, a fog vignette that closes in from
+  wave 16 on (or from wave 1 on the Boneyard), and brief invulnerability
+  after taking a hit so one bad surround doesn't insta-kill you.
+- **Kill-streak callouts** — chaining kills within ~1.4s escalates through
+  Double Kill → Triple Kill → Multi Kill → Rampage → Unstoppable → Godlike
+  (looping every 5 more kills), banner-style text that stacks cleanly
+  instead of overlapping when several land at once.
+- **Battleground atmosphere** — each map's ambient particles are re-skinned
+  to match it: drifting embers over the Foundry, slow fog wisps over the
+  Boneyard, tumbling leaves over Suburbia Ruins, plain dust over the
+  Wasteland Compound.
+- **Punchier UI** — screens and level-up cards pop in instead of snapping
+  into place, the wave banner does a scale-punch entrance every wave (with
+  a bigger, pulsing red treatment on boss waves), and maxed-out ability
+  icons in the HUD get a steady glow.
 
 ## Known simplifications
 

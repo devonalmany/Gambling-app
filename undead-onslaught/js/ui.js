@@ -102,6 +102,7 @@ function renderAbilityIcons(player) {
     wrap.querySelector(".glyph").style.color = def.color;
     wrap.querySelector(".lvl").textContent = ab.level;
     wrap.title = `${def.name} Lv.${ab.level} — ${def.desc(ab.level)}`;
+    wrap.classList.toggle("maxed", ab.level >= def.maxLevel);
 
     const stats = abilityLevelStats(ab.id, ab.level);
     const cd = stats.interval ?? stats.tick;
@@ -111,16 +112,23 @@ function renderAbilityIcons(player) {
   });
 }
 
-export function renderWaveBanner(wave, cleared, bonus) {
+export function renderWaveBanner(wave, cleared, bonus, isBoss) {
   const banner = el("waveBanner");
   banner.classList.remove("hidden");
+  banner.classList.toggle("boss-wave", !cleared && !!isBoss);
   if (cleared) {
     banner.querySelector(".big").textContent = `Wave ${wave} Cleared!`;
     banner.querySelector(".small").textContent = bonus ? `+${bonus} bonus scrap` : "";
   } else {
     banner.querySelector(".big").textContent = `Wave ${wave}`;
-    banner.querySelector(".small").textContent = wave % 5 === 0 ? "Boss incoming" : "";
+    banner.querySelector(".small").textContent = isBoss ? "Boss incoming" : "";
   }
+  // Force the entrance animation to restart even if the banner never left
+  // the DOM (it's shown repeatedly, not re-created each time).
+  const big = banner.querySelector(".big");
+  big.classList.remove("banner-pop");
+  void big.offsetWidth;
+  big.classList.add("banner-pop");
 }
 
 export function hideWaveBanner() {

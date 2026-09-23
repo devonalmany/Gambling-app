@@ -351,6 +351,18 @@ h3 {
   align-items: center;
   justify-content: center;
 }
+.ability-icon.maxed {
+  animation: maxed-glow 1.6s ease-in-out infinite;
+}
+@keyframes maxed-glow {
+  0%,
+  100% {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 0 var(--ring-color, var(--toxic));
+  }
+  50% {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 14px 1px var(--ring-color, var(--toxic));
+  }
+}
 
 /* ---------- Wave banner ---------- */
 #waveBanner {
@@ -372,6 +384,45 @@ h3 {
   text-shadow: 0 0 24px rgba(234, 75, 79, 0.55), 0 4px 14px rgba(0, 0, 0, 0.9);
   position: relative;
   display: inline-block;
+}
+.banner-pop {
+  animation: banner-punch 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+@keyframes banner-punch {
+  0% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(0.94);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+#waveBanner.boss-wave .big {
+  font-size: 76px;
+  color: #f43f5e;
+  text-shadow: 0 0 40px rgba(244, 63, 94, 0.9), 0 4px 20px rgba(0, 0, 0, 0.95);
+  animation: banner-punch 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.2), boss-banner-pulse 0.55s ease-in-out 0.42s infinite alternate;
+}
+#waveBanner.boss-wave .big::before,
+#waveBanner.boss-wave .big::after {
+  background: #f43f5e;
+}
+#waveBanner.boss-wave .small {
+  color: #f43f5e;
+  animation: pulse-danger 0.9s ease-in-out infinite;
+}
+@keyframes boss-banner-pulse {
+  from {
+    filter: brightness(1);
+  }
+  to {
+    filter: brightness(1.45);
+  }
 }
 #waveBanner .big::before,
 #waveBanner .big::after {
@@ -429,6 +480,17 @@ h3 {
   overflow-y: auto;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(143, 225, 63, 0.06);
   position: relative;
+  animation: panel-in 0.26s cubic-bezier(0.2, 0.8, 0.3, 1.15) both;
+}
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 .panel::before {
   content: "";
@@ -681,6 +743,26 @@ h3 {
   gap: 7px;
   transition: transform 0.1s ease, box-shadow 0.15s ease;
   font-family: var(--font-body);
+  animation: card-in 0.3s cubic-bezier(0.2, 0.8, 0.3, 1.15) both;
+}
+.levelup-card:nth-child(1) {
+  animation-delay: 0.03s;
+}
+.levelup-card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.levelup-card:nth-child(3) {
+  animation-delay: 0.17s;
+}
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 .levelup-card:hover {
   transform: translateY(-4px);
