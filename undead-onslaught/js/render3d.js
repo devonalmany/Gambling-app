@@ -309,23 +309,72 @@ function projectToScreen(gx, gy, h) {
   };
 }
 
-// ---- Player --------------------------------------------------------------
-let playerGroup, playerBody, playerRing, playerGun, shieldMesh;
+// ---- Player: a small low-poly humanoid (head, torso, two arms, two legs,
+// a backpack for a recognizable silhouette from behind, and a gun in the
+// lead hand) instead of a single capsule. Built in unit-relative local
+// coordinates (forward = local +X, up = +Y, left/right = Z) and scaled as
+// a whole by the player's radius, the same convention enemies use. -------
+let playerGroup, playerRing, playerGun, shieldMesh;
+let playerHead, playerVisor, playerTorso, playerArmL, playerArmR, playerLegL, playerLegR;
+let playerLimbMats = [];
 function buildPlayerMesh() {
   playerGroup = new THREE.Group();
-  playerBody = mkMesh(geo.capsule, stdMat(0xffffff, { emissive: 0x000000 }));
-  playerBody.castShadow = true;
-  playerGroup.add(playerBody);
+
+  const legGeo = geo.capsule;
+  playerLegL = mkMesh(legGeo, stdMat(0x1a2430).clone());
+  playerLegR = mkMesh(legGeo, stdMat(0x1a2430).clone());
+  for (const leg of [playerLegL, playerLegR]) {
+    leg.scale.set(0.19, 0.26, 0.19);
+    leg.castShadow = true;
+    playerGroup.add(leg);
+  }
+  playerLegL.position.set(-0.04, -0.52, 0.2);
+  playerLegR.position.set(-0.04, -0.52, -0.2);
+
+  playerTorso = mkMesh(geo.capsule, stdMat(0xffffff).clone());
+  playerTorso.scale.set(0.36, 0.3, 0.3);
+  playerTorso.position.set(0, 0.04, 0);
+  playerTorso.castShadow = true;
+  playerGroup.add(playerTorso);
+
+  const backpack = mkMesh(geo.box, stdMat(0x14181c));
+  backpack.scale.set(0.18, 0.42, 0.42);
+  backpack.position.set(-0.32, 0.08, 0);
+  playerGroup.add(backpack);
+
+  const armGeo = geo.capsule;
+  playerArmL = mkMesh(armGeo, stdMat(0xffffff).clone());
+  playerArmR = mkMesh(armGeo, stdMat(0xffffff).clone());
+  for (const arm of [playerArmL, playerArmR]) {
+    arm.scale.set(0.15, 0.24, 0.15);
+    playerGroup.add(arm);
+  }
+  playerArmL.position.set(0, 0.24, 0.4);
+  playerArmR.position.set(0.08, 0.2, -0.38);
+  playerArmR.rotation.z = -0.35;
+
+  playerHead = mkMesh(geo.sphere, stdMat(0xffffff).clone());
+  playerHead.scale.setScalar(0.32);
+  playerHead.position.set(0.03, 0.8, 0);
+  playerHead.castShadow = true;
+  playerGroup.add(playerHead);
+
+  playerVisor = mkMesh(geo.sphereLo, glowMat(0xe2f2ff, { opacity: 0.95 }));
+  playerVisor.scale.set(0.1, 0.07, 0.24);
+  playerVisor.position.set(0.29, 0.81, 0);
+  playerGroup.add(playerVisor);
 
   playerGun = mkMesh(geo.box, stdMat(0x1a2430));
-  playerGun.scale.set(20, 7, 7);
-  playerGun.position.set(16, 0, 0);
+  playerGun.scale.set(1.0, 0.18, 0.18);
+  playerGun.position.set(0.62, 0.2, -0.4);
   playerGroup.add(playerGun);
 
   playerRing = mkMesh(geo.ring, glowMat(0x8fe13f, { opacity: 0.4, side: THREE.DoubleSide }));
   playerRing.rotation.x = -Math.PI / 2;
-  playerRing.position.y = 1;
+  playerRing.position.y = -0.98;
   playerGroup.add(playerRing);
+
+  playerLimbMats = [playerTorso.material, playerArmL.material, playerArmR.material, playerHead.material];
 
   scene.add(playerGroup);
 }
@@ -334,27 +383,53 @@ function buildShieldMesh() {
   shieldMesh.visible = false;
   scene.add(shieldMesh);
 }
+let lastPlayerX = null;
+let lastPlayerY = null;
+let walkPhase = 0;
 function updatePlayer(player, now) {
   const r = player.radius;
-  setPos(playerGroup, player.x, player.y, r);
-  playerGroup.scale.set(r / 14, r / 14, r / 14);
+  // The visible character is drawn noticeably bigger than the hit-radius
+  // (a common game trick for legibility) — position height is derived from
+  // that same visual scale, not r, so the feet still land on the ground.
+  const visualScale = r * 1.3;
+  setPos(playerGroup, player.x, player.y, visualScale * 0.9);
+  playerGroup.scale.setScalar(visualScale);
   setFacing(playerGroup, player.facing);
+
+  // Leg/arm swing driven by distance actually traveled since last frame,
+  // not elapsed time, so the walk cycle speeds up and stops with movement
+  // instead of animating in place while standing still.
+  if (lastPlayerX !== null) {
+    const stepDist = Math.hypot(player.x - lastPlayerX, player.y - lastPlayerY);
+    walkPhase += Math.min(stepDist, 40) * 0.09;
+  }
+  lastPlayerX = player.x;
+  lastPlayerY = player.y;
+  const swing = player.dashing ? 0 : Math.sin(walkPhase) * 0.5;
+  playerLegL.rotation.z = swing;
+  playerLegR.rotation.z = -swing;
+  playerArmL.rotation.z = -swing * 0.6;
 
   const col = player.characterColor;
   const flashing = player.invulnMs > 0 && Math.floor(now / 60) % 2 === 0;
-  playerBody.material = stdMat(col.primary, { emissive: new THREE.Color(col.accent), emissiveIntensity: player.dashing ? 0.55 : 0.15 });
-  playerBody.material.opacity = flashing ? 0.4 : 1;
-  playerBody.material.transparent = flashing;
+  const bodyMat = stdMat(col.primary, { emissive: new THREE.Color(col.accent), emissiveIntensity: player.dashing ? 0.55 : 0.15 });
+  for (const m of playerLimbMats) {
+    m.color.copy(bodyMat.color);
+    m.emissive.copy(bodyMat.emissive);
+    m.emissiveIntensity = bodyMat.emissiveIntensity;
+    m.opacity = flashing ? 0.4 : 1;
+    m.transparent = flashing;
+  }
   playerRing.material.color.set(col.accent);
-  playerRing.scale.setScalar(1.6 + Math.sin(now / 320) * 0.04);
+  playerRing.scale.setScalar(1.55 + Math.sin(now / 320) * 0.04);
 
   playerLight.position.set(player.x, 140, player.y);
   playerLight.color.set(col.accent);
 
   shieldMesh.visible = player.shieldHp > 0;
   if (shieldMesh.visible) {
-    setPos(shieldMesh, player.x, player.y, r);
-    shieldMesh.scale.setScalar(r * 1.7 * (1 + Math.sin(now / 300) * 0.03));
+    setPos(shieldMesh, player.x, player.y, visualScale * 0.9);
+    shieldMesh.scale.setScalar(visualScale * 1.5 * (1 + Math.sin(now / 300) * 0.03));
   }
 }
 
