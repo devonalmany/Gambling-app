@@ -70,14 +70,9 @@ export function updateHud(player, wave, elapsed) {
   el("killsLabel").textContent = player.kills;
   el("timeLabel").textContent = fmtTime(elapsed);
 
-  const w = player.weapons[player.currentWeapon];
   const def = WEAPON_DEFS[player.currentWeapon];
   el("weaponName").textContent = def.name;
-  el("ammoLabel").textContent = def.infiniteAmmo
-    ? "∞"
-    : w.reloading
-    ? "RELOADING"
-    : `${w.ammoInMag} / ${w.ammoReserve}`;
+  el("ammoLabel").textContent = "∞";
 
   const dashPct = player.dashCooldownLeft <= 0 ? 100 : 100 * (1 - player.dashCooldownLeft / 2.4);
   el("dashFill").style.width = `${Math.max(0, Math.min(100, dashPct))}%`;
@@ -212,10 +207,12 @@ export function renderShop(player, wave, handlers) {
 }
 
 function visibleTracks(def) {
-  if (def.mode === "cone") return UPGRADE_TRACKS.filter((t) => t.id !== "pierce" && t.id !== "explosive");
-  if (def.mode === "lob") return UPGRADE_TRACKS.filter((t) => t.id !== "pierce");
-  if (def.mode === "beam") return UPGRADE_TRACKS.filter((t) => t.id !== "pierce" && t.id !== "explosive");
-  return UPGRADE_TRACKS;
+  // "range" (Extended Range) only exists for the Flamethrower's cone.
+  const tracks = def.mode === "cone" ? UPGRADE_TRACKS : UPGRADE_TRACKS.filter((t) => t.id !== "range");
+  if (def.mode === "cone") return tracks.filter((t) => t.id !== "pierce" && t.id !== "explosive");
+  if (def.mode === "lob") return tracks.filter((t) => t.id !== "pierce");
+  if (def.mode === "beam") return tracks.filter((t) => t.id !== "pierce" && t.id !== "explosive");
+  return tracks;
 }
 
 function shopRow({ title, desc, cost, affordable, owned, onBuy }) {

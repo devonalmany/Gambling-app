@@ -24,7 +24,6 @@ python3 -m http.server 8081
 | -------------- | ------------------- |
 | WASD / Arrows  | Move                |
 | Mouse          | Aim & Shoot         |
-| R              | Reload              |
 | Space          | Dash                |
 | E              | Melee shove         |
 | 1–9            | Switch weapon       |
@@ -59,19 +58,22 @@ python3 -m http.server 8081
   player; clearing a wave opens a between-wave shop, then the next (larger,
   faster, tougher) wave begins. Health regenerates slowly; a dash gives a
   short burst of invulnerability to escape being surrounded.
-- **9 weapons** — Pistol (infinite ammo, starting weapon), Shotgun, SMG,
-  Assault Rifle, Sniper Rifle, Flamethrower (cone tick damage that also
-  ignites zombies for ~2s of lingering burn damage after you stop firing),
-  Grenade Launcher (arcing AOE), Minigun (spins up tighter accuracy the
-  longer you hold the trigger), and **Railgun** (an instant hitscan beam
-  that pierces every zombie standing in its line, each rolling its own
-  crit independently). All but the Pistol are locked until bought in the
-  shop. Hold the mouse to fire, or press **F** to toggle Auto-Fire and keep
-  the trigger held automatically whenever zombies are on the field.
-- **Weapon upgrade tracks** — per-weapon Damage, Fire Rate, Reload Speed,
-  Magazine Size, Crit Chance, Piercing, and Explosive Rounds, each with
-  independent levels and scaling cost (tracks that don't apply to a given
-  weapon's firing mode, like Piercing on the Flamethrower, are hidden).
+- **9 weapons, all infinite ammo** — Pistol (starting weapon), Shotgun,
+  SMG, Assault Rifle, Sniper Rifle, Flamethrower (cone tick damage that
+  also ignites zombies for ~2s of lingering burn damage after you stop
+  firing), Grenade Launcher (arcing AOE), Minigun (spins up tighter
+  accuracy the longer you hold the trigger), and **Railgun** (an instant
+  hitscan beam that pierces every zombie standing in its line, each
+  rolling its own crit independently). No magazines, no reloading —
+  firing is gated only by each weapon's fire-rate cooldown. All but the
+  Pistol are locked until bought in the shop. Hold the mouse to fire, or
+  press **F** to toggle Auto-Fire and keep the trigger held automatically
+  whenever zombies are on the field.
+- **Weapon upgrade tracks** — per-weapon Damage, Fire Rate, Crit Chance,
+  Piercing, and Explosive Rounds, each with independent levels and scaling
+  cost (tracks that don't apply to a given weapon's firing mode, like
+  Piercing on the Flamethrower, are hidden). The Flamethrower alone also
+  gets **Extended Range**, pushing its cone further out per level.
 - **6 auto-triggering abilities** — Orbiting Blades, Homing Shards, Static
   Field (damage aura), Landmine Drop, Chain Lightning, and Shockwave Stomp.
   Offered on level-up alongside passive stat cards; each levels 1–5 with
@@ -80,9 +82,9 @@ python3 -m http.server 8081
   level-up.
 - **Between-wave shop** — spend this run's scrap on weapon unlocks/upgrades
   or permanent-for-the-run player perks (max HP, move speed, dash cooldown,
-  currency gain, regen, ammo refill rate). A one-time **Auto-Aim Module**
-  (⚙500) makes weapons and melee always track the nearest zombie instead of
-  the mouse cursor.
+  currency gain, regen). A one-time **Auto-Aim Module** (⚙500) makes
+  weapons and melee always track the nearest zombie instead of the mouse
+  cursor.
 - **6 zombie types** — Walker, Runner, Brute (high HP/damage, CC-resistant),
   Spitter (kites and lobs ranged acid), Screamer (buffs nearby zombies and
   periodically summons more, itself CC-resistant), and a scaling Boss every

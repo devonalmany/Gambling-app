@@ -1,6 +1,6 @@
 import { PLAYER, XP } from "./constants.js";
 import { clamp } from "./utils.js";
-import { WEAPON_ORDER, WEAPON_DEFS, emptyUpgrades } from "./weapons.js";
+import { WEAPON_ORDER, emptyUpgrades } from "./weapons.js";
 import { getCharacter } from "./characters.js";
 
 export function createPlayer(canvasW, canvasH, characterId = "rookie") {
@@ -8,13 +8,8 @@ export function createPlayer(canvasW, canvasH, characterId = "rookie") {
   const mods = character.statMods;
   const weapons = {};
   for (const id of WEAPON_ORDER) {
-    const def = WEAPON_DEFS[id];
     weapons[id] = {
       unlocked: id === "pistol",
-      ammoInMag: def.magSize ?? 0,
-      ammoReserve: def.infiniteAmmo ? Infinity : Math.round((def.reserveMax ?? 0) * 0.6),
-      reloading: false,
-      reloadTimer: 0,
       fireTimer: 0,
       holdTime: 0, // for minigun spin-up / flamethrower continuous fire
       upgrades: emptyUpgrades(),
@@ -64,7 +59,6 @@ export function createPlayer(canvasW, canvasH, characterId = "rookie") {
       abilityDamageMul: 1 + (mods.abilityDamageMul ?? 0),
       cooldownReductionMul: 1 + (mods.cooldownReductionMul ?? 0),
       xpGainMul: 1 + (mods.xpGainMul ?? 0),
-      extraAmmoMul: 1,
       meleeDamageMul: 1 + (mods.meleeDamageMul ?? 0),
       weaponDamageMul: 1 + (mods.weaponDamageMul ?? 0),
     },

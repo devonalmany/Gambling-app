@@ -18,12 +18,7 @@ import { updateEnemies, applyKnockback, spawnZombie } from "./enemies.js";
 import { spawnCurrencyDrop, maybeSpawnHealthDrop, updatePickups } from "./pickups.js";
 import { updateAbilities } from "./abilities.js";
 import { generateLevelUpCards, applyCard } from "./levelup.js";
-import {
-  refillAmmoForWave,
-  buyPerk,
-  buyWeaponUnlock,
-  buyWeaponUpgrade,
-} from "./shop.js";
+import { buyPerk, buyWeaponUnlock, buyWeaponUpgrade } from "./shop.js";
 import { createWaveManager, startWave, updateWaveManager, isWaveClear } from "./waves.js";
 import { getMap } from "./maps.js";
 import { dist, angleTo, clamp, randRange, randInt } from "./utils.js";
@@ -303,7 +298,6 @@ function beginWave(wave) {
 }
 
 function startNextWave() {
-  refillAmmoForWave(player);
   setScreen("playing");
   beginWave(waveManager.wave + 1);
 }
@@ -342,23 +336,6 @@ function switchWeapon(id) {
   player.currentWeapon = id;
 }
 
-function startReload(w, def) {
-  if (def.infiniteAmmo || w.reloading) return;
-  if (w.ammoInMag >= def.magSize || w.ammoReserve <= 0) return;
-  w.reloading = true;
-  const stats = effectiveStats(def, w.upgrades);
-  w.reloadTimer = stats.reloadTime;
-}
-
-function finishReload(w, def) {
-  const stats = effectiveStats(def, w.upgrades);
-  const need = stats.magSize - w.ammoInMag;
-  const take = Math.min(need, w.ammoReserve);
-  w.ammoInMag += take;
-  w.ammoReserve -= take;
-  w.reloading = false;
-}
-
 function fireBullet(player, def, stats, angle, dmg) {
   const half = (stats.spreadDeg ?? def.spreadDeg ?? 0) * (Math.PI / 180) / 2;
   const a = angle + randRange(-half, half);
@@ -385,41 +362,32 @@ function updateWeapon(dt, now) {
   const stats = effectiveStats(def, w.upgrades);
   stats.damage *= player.perks.weaponDamageMul;
 
-  if (w.reloading) {
-    w.reloadTimer -= dt;
-    if (w.reloadTimer <= 0) finishReload(w, def);
-  }
   if (w.fireTimer > 0) w.fireTimer -= dt;
-
-  if (Input.wasPressed("KeyR")) startReload(w, def);
 
   const aim = computeAimAngle();
   const firing = isFiring();
 
   if (def.mode === "cone") {
-    if (firing && !w.reloading && w.ammoInMag > 0 && w.fireTimer <= 0) {
+    if (firing && w.fireTimer <= 0) {
       w.fireTimer = 1 / stats.fireRate;
-      w.ammoInMag -= 1;
       const half = (def.coneDeg * Math.PI) / 180 / 2;
       for (const z of enemies) {
         const a = angleTo(player.x, player.y, z.x, z.y);
         const d = dist(player.x, player.y, z.x, z.y);
-        if (d <= def.range + z.radius && Math.abs(normDiff(a, aim)) <= half) {
+        if (d <= stats.range + z.radius && Math.abs(normDiff(a, aim)) <= half) {
           damageEnemy(z, stats.damage);
           igniteEnemy(z, stats.damage, now);
         }
       }
-      spawnFlameCone(player.x, player.y, aim, def.range);
+      spawnFlameCone(player.x, player.y, aim, stats.range);
       spawnMuzzleFlash(aim, "#ff8c28");
-      if (w.ammoInMag <= 0) startReload(w, def);
     }
     return;
   }
 
   if (def.mode === "lob") {
-    if (firing && !w.reloading && w.ammoInMag > 0 && w.fireTimer <= 0) {
+    if (firing && w.fireTimer <= 0) {
       w.fireTimer = 1 / stats.fireRate;
-      w.ammoInMag -= 1;
       spawnProjectile(friendlyProjectiles, {
         x: player.x,
         y: player.y,
@@ -436,17 +404,14 @@ function updateWeapon(dt, now) {
         color: "#a3e635",
       });
       spawnMuzzleFlash(aim, "#a3e635");
-      if (w.ammoInMag <= 0) startReload(w, def);
     }
     return;
   }
 
   if (def.mode === "beam") {
-    if (firing && !w.reloading && w.ammoInMag > 0 && w.fireTimer <= 0) {
+    if (firing && w.fireTimer <= 0) {
       w.fireTimer = 1 / stats.fireRate;
-      w.ammoInMag -= 1;
       fireRailgun(aim, stats, def);
-      if (w.ammoInMag <= 0) startReload(w, def);
     }
     return;
   }
@@ -456,24 +421,18 @@ function updateWeapon(dt, now) {
     w.holdTime = firing ? Math.min(def.spinUpTime, w.holdTime + dt) : Math.max(0, w.holdTime - dt * 2);
   }
 
-  if (firing && !w.reloading && w.fireTimer <= 0) {
-    if (def.infiniteAmmo || w.ammoInMag > 0) {
-      w.fireTimer = 1 / stats.fireRate;
-      if (!def.infiniteAmmo) w.ammoInMag -= 1;
-      let spread = stats.spreadDeg ?? def.spreadDeg;
-      if (player.currentWeapon === "minigun") {
-        const t = w.holdTime / def.spinUpTime;
-        spread = def.spreadDeg + (def.spreadDegSpunUp - def.spreadDeg) * t;
-      }
-      const pellets = def.pellets ?? 1;
-      for (let i = 0; i < pellets; i++) {
-        fireBullet(player, def, { ...stats, spreadDeg: spread }, aim, stats.damage);
-      }
-      spawnMuzzleFlash(aim, "#ffe066");
-      if (!def.infiniteAmmo && w.ammoInMag <= 0) startReload(w, def);
-    } else {
-      startReload(w, def);
+  if (firing && w.fireTimer <= 0) {
+    w.fireTimer = 1 / stats.fireRate;
+    let spread = stats.spreadDeg ?? def.spreadDeg;
+    if (player.currentWeapon === "minigun") {
+      const t = w.holdTime / def.spinUpTime;
+      spread = def.spreadDeg + (def.spreadDegSpunUp - def.spreadDeg) * t;
     }
+    const pellets = def.pellets ?? 1;
+    for (let i = 0; i < pellets; i++) {
+      fireBullet(player, def, { ...stats, spreadDeg: spread }, aim, stats.damage);
+    }
+    spawnMuzzleFlash(aim, "#ffe066");
   }
 }
 

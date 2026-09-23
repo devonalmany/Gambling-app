@@ -1,32 +1,26 @@
-// Weapon definitions + upgrade-track math. Firing itself (spawning
-// projectiles, consuming ammo) is orchestrated in main.js/player.js against
-// this static data plus each weapon's per-run runtime state.
+// Weapon definitions + upgrade-track math. Every weapon has infinite ammo —
+// firing is gated only by its fire-rate cooldown (see main.js updateWeapon).
 
 export const UPGRADE_TRACKS = [
   { id: "dmg", label: "Damage", max: 5 },
   { id: "fireRate", label: "Fire Rate", max: 5 },
-  { id: "reload", label: "Reload Speed", max: 5 },
-  { id: "mag", label: "Magazine Size", max: 5 },
   { id: "crit", label: "Crit Chance", max: 5 },
   { id: "pierce", label: "Piercing", max: 3 },
   { id: "explosive", label: "Explosive Rounds", max: 3 },
+  { id: "range", label: "Extended Range", max: 5 }, // Flamethrower only
 ];
 
 // mode: "projectile" (bullets), "cone" (continuous tick damage, flamethrower),
-// "lob" (arcing AOE grenade)
+// "lob" (arcing AOE grenade), "beam" (instant piercing hitscan, railgun)
 export const WEAPON_DEFS = {
   pistol: {
     id: "pistol",
     name: "Pistol",
     key: "Digit1",
     unlockCost: 0,
-    infiniteAmmo: true,
     mode: "projectile",
     damage: 9,
     fireRate: 3.2,
-    magSize: 12,
-    reserveMax: Infinity,
-    reloadTime: 0.9,
     bulletSpeed: 640,
     spreadDeg: 2,
     pellets: 1,
@@ -41,9 +35,6 @@ export const WEAPON_DEFS = {
     damage: 7,
     pellets: 6,
     fireRate: 1.1,
-    magSize: 6,
-    reserveMax: 48,
-    reloadTime: 1.7,
     bulletSpeed: 560,
     spreadDeg: 18,
     critChance: 0.03,
@@ -57,9 +48,6 @@ export const WEAPON_DEFS = {
     damage: 4.5,
     pellets: 1,
     fireRate: 9,
-    magSize: 30,
-    reserveMax: 240,
-    reloadTime: 1.4,
     bulletSpeed: 700,
     spreadDeg: 7,
     critChance: 0.05,
@@ -73,9 +61,6 @@ export const WEAPON_DEFS = {
     damage: 12,
     pellets: 1,
     fireRate: 5.5,
-    magSize: 24,
-    reserveMax: 168,
-    reloadTime: 1.6,
     bulletSpeed: 760,
     spreadDeg: 3,
     critChance: 0.08,
@@ -89,9 +74,6 @@ export const WEAPON_DEFS = {
     damage: 55,
     pellets: 1,
     fireRate: 0.9,
-    magSize: 5,
-    reserveMax: 40,
-    reloadTime: 2.1,
     bulletSpeed: 1100,
     spreadDeg: 0.5,
     critChance: 0.18,
@@ -104,9 +86,6 @@ export const WEAPON_DEFS = {
     mode: "cone",
     damage: 16, // per tick, ticks ~6/sec while held
     fireRate: 6,
-    magSize: 80,
-    reserveMax: 320,
-    reloadTime: 2.4,
     range: 150,
     coneDeg: 40,
     critChance: 0.0,
@@ -120,9 +99,6 @@ export const WEAPON_DEFS = {
     damage: 60,
     pellets: 1,
     fireRate: 1.4,
-    magSize: 4,
-    reserveMax: 28,
-    reloadTime: 2.0,
     bulletSpeed: 480,
     spreadDeg: 2,
     explosionRadius: 90,
@@ -137,9 +113,6 @@ export const WEAPON_DEFS = {
     damage: 6,
     pellets: 1,
     fireRate: 14,
-    magSize: 90,
-    reserveMax: 450,
-    reloadTime: 3.2,
     bulletSpeed: 780,
     spreadDeg: 10, // tightens with spin-up, see main.js
     spreadDegSpunUp: 3,
@@ -154,9 +127,6 @@ export const WEAPON_DEFS = {
     mode: "beam", // instant piercing hitscan line, see main.js fireRailgun()
     damage: 65,
     fireRate: 0.8,
-    magSize: 4,
-    reserveMax: 28,
-    reloadTime: 2.8,
     range: 1400,
     beamWidth: 7,
     critChance: 0.15,
@@ -176,11 +146,11 @@ export const WEAPON_ORDER = [
 ];
 
 export function emptyUpgrades() {
-  return { dmg: 0, fireRate: 0, reload: 0, mag: 0, crit: 0, pierce: 0, explosive: 0 };
+  return { dmg: 0, fireRate: 0, crit: 0, pierce: 0, explosive: 0, range: 0 };
 }
 
 export function upgradeCost(track, currentLevel) {
-  const base = { dmg: 20, fireRate: 22, reload: 16, mag: 18, crit: 24, pierce: 45, explosive: 55 };
+  const base = { dmg: 20, fireRate: 22, crit: 24, pierce: 45, explosive: 55, range: 35 };
   return Math.round(base[track] * Math.pow(1.55, currentLevel));
 }
 
@@ -189,13 +159,10 @@ export function upgradeCost(track, currentLevel) {
 export function effectiveStats(def, upgrades) {
   const dmgMul = 1 + upgrades.dmg * 0.16;
   const fireRateMul = 1 + upgrades.fireRate * 0.12;
-  const reloadMul = Math.max(0.35, 1 - upgrades.reload * 0.13);
-  const magBonus = Math.round((def.magSize || 0) * upgrades.mag * 0.22);
   return {
     damage: def.damage * dmgMul,
     fireRate: def.fireRate * fireRateMul,
-    reloadTime: def.reloadTime * reloadMul,
-    magSize: (def.magSize || 0) + magBonus,
+    range: (def.range ?? 0) * (1 + upgrades.range * 0.15),
     critChance: Math.min(0.75, (def.critChance || 0) + upgrades.crit * 0.06),
     pierce: upgrades.pierce,
     explosive: upgrades.explosive > 0,

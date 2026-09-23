@@ -2,7 +2,7 @@
 // weapon unlocks, and player perks. Everything here resets on a new run —
 // see README "Known simplifications" for why there's no cross-run
 // meta-currency layer.
-import { WEAPON_ORDER, WEAPON_DEFS, UPGRADE_TRACKS, upgradeCost } from "./weapons.js";
+import { WEAPON_DEFS, UPGRADE_TRACKS, upgradeCost } from "./weapons.js";
 
 export const SHOP_PERKS = [
   { id: "maxHp", name: "Max HP", desc: "+15 Max HP", costBase: 45, apply: (p) => { p.maxHp += 15; p.hp += 15; } },
@@ -10,7 +10,6 @@ export const SHOP_PERKS = [
   { id: "dashCooldown", name: "Dash Cooldown", desc: "-10% Dash Cooldown", costBase: 50, apply: (p) => { p.perks.dashCooldownMul = Math.max(0.4, p.perks.dashCooldownMul - 0.1); } },
   { id: "currencyGain", name: "Currency Gain", desc: "+10% Currency Gain", costBase: 60, apply: (p) => { p.perks.currencyGainMul += 0.1; } },
   { id: "regen", name: "Health Regen", desc: "+0.4 HP/s Regen", costBase: 55, apply: (p) => { p.perks.regenBonus += 0.4; } },
-  { id: "extraAmmo", name: "Extra Ammo", desc: "+15% Ammo Refill Between Waves", costBase: 40, apply: (p) => { p.perks.extraAmmoMul += 0.15; } },
   { id: "autoAim", name: "Auto-Aim Module", desc: "Weapons and melee always track the nearest zombie", costBase: 500, maxLevel: 1, apply: (p) => { p.autoAim = true; } },
 ];
 
@@ -52,18 +51,6 @@ export function buyWeaponUpgrade(player, weaponId, trackId) {
   player.currency -= cost;
   w.upgrades[trackId] = level + 1;
   return true;
-}
-
-// Refill a slice of reserve ammo for unlocked non-infinite weapons at the
-// start of each wave (bigger with the Extra Ammo perk).
-export function refillAmmoForWave(player) {
-  for (const id of WEAPON_ORDER) {
-    const def = WEAPON_DEFS[id];
-    const w = player.weapons[id];
-    if (!w.unlocked || def.infiniteAmmo) continue;
-    const refill = Math.round(def.reserveMax * 0.22 * player.perks.extraAmmoMul);
-    w.ammoReserve = Math.min(def.reserveMax, w.ammoReserve + refill);
-  }
 }
 
 export function abilitySlotsLabel(player) {
