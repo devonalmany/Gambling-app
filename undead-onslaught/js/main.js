@@ -25,6 +25,7 @@ import {
   buyWeaponUpgrade,
 } from "./shop.js";
 import { createWaveManager, startWave, updateWaveManager, isWaveClear } from "./waves.js";
+import { getMap } from "./maps.js";
 import { dist, angleTo, clamp, randRange, randInt } from "./utils.js";
 
 const canvas = document.getElementById("game");
@@ -32,6 +33,10 @@ const ctx = canvas.getContext("2d");
 
 let bounds = { w: window.innerWidth, h: window.innerHeight };
 let groundTexture = null;
+let selectedCharacterId = "rookie";
+let selectedMapId = "compound";
+let currentMap = getMap(selectedMapId);
+let hazards = [];
 let ambientParticles = [];
 let shakeTimeLeft = 0;
 let shakeMag = 0;
@@ -56,21 +61,23 @@ function resize() {
   canvas.style.width = `${bounds.w}px`;
   canvas.style.height = `${bounds.h}px`;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  groundTexture = buildGroundTexture(bounds.w, bounds.h);
+  groundTexture = buildGroundTexture(bounds.w, bounds.h, currentMap);
 }
 
-// A painted wasteland ground, baked once per resize instead of drawn live:
-// base gradient wash, patchy dirt/rot blotches, cracks, and scattered rubble.
-function buildGroundTexture(w, h) {
+// A painted ground, baked once per resize/run instead of drawn live: base
+// gradient wash, patchy blotches, cracks, and scattered rubble — palette
+// and density driven by the selected map (see maps.js).
+function buildGroundTexture(w, h, mapDef) {
+  const palette = mapDef.palette;
   const off = document.createElement("canvas");
   off.width = Math.max(1, Math.round(w));
   off.height = Math.max(1, Math.round(h));
   const g = off.getContext("2d");
 
   const grad = g.createRadialGradient(w * 0.5, h * 0.42, 40, w * 0.5, h * 0.5, Math.max(w, h) * 0.75);
-  grad.addColorStop(0, "#182015");
-  grad.addColorStop(0.55, "#121a10");
-  grad.addColorStop(1, "#0a0f08");
+  grad.addColorStop(0, palette.base[0]);
+  grad.addColorStop(0.55, palette.base[1]);
+  grad.addColorStop(1, palette.base[2]);
   g.fillStyle = grad;
   g.fillRect(0, 0, w, h);
 
@@ -80,7 +87,7 @@ function buildGroundTexture(w, h) {
     const x = randRange(0, w);
     const y = randRange(0, h);
     const r = randRange(30, 110);
-    const tone = choiceWeighted();
+    const tone = choiceWeighted(palette.patchTones);
     const grd = g.createRadialGradient(x, y, 0, x, y, r);
     grd.addColorStop(0, tone);
     grd.addColorStop(1, "rgba(0,0,0,0)");
@@ -93,9 +100,9 @@ function buildGroundTexture(w, h) {
   g.globalAlpha = 1;
 
   // cracks
-  g.strokeStyle = "rgba(0,0,0,0.35)";
+  g.strokeStyle = `rgba(0,0,0,${palette.crackAlpha})`;
   g.lineWidth = 1.4;
-  const crackCount = Math.round((w * h) / 90000);
+  const crackCount = Math.round(((w * h) / 90000) * palette.crackDensityMul);
   for (let i = 0; i < crackCount; i++) {
     let x = randRange(0, w);
     let y = randRange(0, h);
@@ -138,6 +145,11 @@ function buildGroundTexture(w, h) {
     g.stroke();
   }
 
+  // decorative vent covers baked under each hazard position (Foundry map)
+  for (const hz of mapDef.hazards) {
+    drawVentCover(g, hz.fx * w, hz.fy * h, hz.radius * 0.7);
+  }
+
   // vignette baked into the texture itself
   const vg = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.25, w / 2, h / 2, Math.max(w, h) * 0.72);
   vg.addColorStop(0, "rgba(0,0,0,0)");
@@ -148,8 +160,29 @@ function buildGroundTexture(w, h) {
   return off;
 }
 
-function choiceWeighted() {
-  const tones = ["#2c3a22", "#241c16", "#1a2418", "#33291a"];
+function drawVentCover(g, x, y, r) {
+  g.save();
+  g.fillStyle = "rgba(0,0,0,0.45)";
+  g.beginPath();
+  g.arc(x, y, r, 0, Math.PI * 2);
+  g.fill();
+  g.strokeStyle = "rgba(255,120,40,0.3)";
+  g.lineWidth = 2;
+  g.beginPath();
+  g.arc(x, y, r, 0, Math.PI * 2);
+  g.stroke();
+  g.strokeStyle = "rgba(20,15,10,0.6)";
+  g.lineWidth = 2.5;
+  for (let i = -2; i <= 2; i++) {
+    g.beginPath();
+    g.moveTo(x - r * 0.8, y + i * r * 0.28);
+    g.lineTo(x + r * 0.8, y + i * r * 0.28);
+    g.stroke();
+  }
+  g.restore();
+}
+
+function choiceWeighted(tones) {
   return tones[Math.floor(Math.random() * tones.length)];
 }
 
@@ -201,14 +234,40 @@ let lastTs = 0;
 
 UI.renderStartHighScores(loadHighScores());
 
-document.getElementById("startBtn").addEventListener("click", startGame);
+document.getElementById("startBtn").addEventListener("click", openLoadout);
+document.getElementById("loadoutBackBtn").addEventListener("click", () => setScreen("start"));
+document.getElementById("deployBtn").addEventListener("click", startGame);
 document.getElementById("restartBtn").addEventListener("click", startGame);
 document.getElementById("shopNextWaveBtn").addEventListener("click", startNextWave);
 document.getElementById("resumeBtn").addEventListener("click", () => setScreen("playing"));
 document.getElementById("pauseRestartBtn").addEventListener("click", startGame);
 
+function openLoadout() {
+  setScreen("loadout");
+  renderLoadout();
+}
+
+function renderLoadout() {
+  UI.renderLoadoutScreen(
+    { characterId: selectedCharacterId, mapId: selectedMapId },
+    {
+      onSelectCharacter: (id) => {
+        selectedCharacterId = id;
+        renderLoadout();
+      },
+      onSelectMap: (id) => {
+        selectedMapId = id;
+        renderLoadout();
+      },
+    }
+  );
+}
+
 function startGame() {
-  player = createPlayer(bounds.w, bounds.h);
+  currentMap = getMap(selectedMapId);
+  player = createPlayer(bounds.w, bounds.h, selectedCharacterId);
+  player.perks.currencyGainMul *= currentMap.modifiers.currencyMul;
+  player.perks.xpGainMul *= currentMap.modifiers.xpMul;
   enemies = [];
   friendlyProjectiles = [];
   enemyProjectiles = [];
@@ -218,6 +277,15 @@ function startGame() {
   elapsed = 0;
   pendingLevelUps = 0;
   forceAbilityCardQueued = false;
+  groundTexture = buildGroundTexture(bounds.w, bounds.h, currentMap);
+  hazards = currentMap.hazards.map((h) => ({
+    x: h.fx * bounds.w,
+    y: h.fy * bounds.h,
+    radius: h.radius,
+    damage: h.damage,
+    cycle: h.cycle,
+    timer: randRange(h.cycle * 0.3, h.cycle),
+  }));
   UI.setHudVisible(true);
   setScreen("playing");
   beginWave(1);
@@ -247,6 +315,9 @@ function setScreen(next) {
     UI.setHudVisible(true);
   } else if (next === "start") {
     UI.showScreen("startScreen");
+    UI.setHudVisible(false);
+  } else if (next === "loadout") {
+    UI.showScreen("loadoutScreen");
     UI.setHudVisible(false);
   } else if (next === "paused") {
     UI.showScreen("pauseScreen");
@@ -312,6 +383,7 @@ function updateWeapon(dt, now) {
   const def = WEAPON_DEFS[player.currentWeapon];
   const w = currentWeaponRuntime();
   const stats = effectiveStats(def, w.upgrades);
+  stats.damage *= player.perks.weaponDamageMul;
 
   if (w.reloading) {
     w.reloadTimer -= dt;
@@ -364,6 +436,16 @@ function updateWeapon(dt, now) {
         color: "#a3e635",
       });
       spawnMuzzleFlash(aim, "#a3e635");
+      if (w.ammoInMag <= 0) startReload(w, def);
+    }
+    return;
+  }
+
+  if (def.mode === "beam") {
+    if (firing && !w.reloading && w.ammoInMag > 0 && w.fireTimer <= 0) {
+      w.fireTimer = 1 / stats.fireRate;
+      w.ammoInMag -= 1;
+      fireRailgun(aim, stats, def);
       if (w.ammoInMag <= 0) startReload(w, def);
     }
     return;
@@ -439,6 +521,49 @@ function spawnMuzzleFlash(angle, color) {
   muzzleFlashes.push({ x: tipX, y: tipY, angle, life: 0.06, age: 0, color });
 }
 
+// Railgun: an instant hitscan line that pierces every zombie standing in it.
+const railBeams = [];
+function fireRailgun(angle, stats, def) {
+  const dx = Math.cos(angle);
+  const dy = Math.sin(angle);
+  const beamWidth = def.beamWidth ?? 6;
+  const hits = [];
+  for (const z of enemies) {
+    if (z.hp <= 0) continue;
+    const rx = z.x - player.x;
+    const ry = z.y - player.y;
+    const proj = rx * dx + ry * dy;
+    if (proj < 0 || proj > def.range) continue;
+    const perp = Math.abs(rx * dy - ry * dx);
+    if (perp <= z.radius + beamWidth / 2) hits.push({ z, proj });
+  }
+  hits.sort((a, b) => a.proj - b.proj);
+  for (const { z } of hits) {
+    const crit = Math.random() < stats.critChance;
+    const dmg = crit ? stats.damage * 2 : stats.damage;
+    damageEnemy(z, dmg);
+    applyKnockback(z, dx, dy, 90);
+    popups.push({
+      x: z.x,
+      y: z.y - 10,
+      text: crit ? `${Math.round(dmg)}!` : `${Math.round(dmg)}`,
+      life: 0.45,
+      age: 0,
+      color: crit ? "#ff5c5c" : "#e2ecff",
+    });
+  }
+  railBeams.push({
+    x1: player.x,
+    y1: player.y,
+    x2: player.x + dx * def.range,
+    y2: player.y + dy * def.range,
+    life: 0.16,
+    age: 0,
+  });
+  spawnMuzzleFlash(angle, "#bfe8ff");
+  addShake(4, 0.12);
+}
+
 const flameParticles = [];
 function spawnFlameCone(x, y, angle, range) {
   const count = randInt(4, 6);
@@ -503,7 +628,7 @@ function tryMelee() {
     if (d > PLAYER.meleeRange + z.radius) continue;
     const a = angleTo(player.x, player.y, z.x, z.y);
     if (Math.abs(normDiff(a, aim)) <= PLAYER.meleeArc / 2) {
-      damageEnemy(z, PLAYER.meleeDamage);
+      damageEnemy(z, PLAYER.meleeDamage * player.perks.meleeDamageMul);
       applyKnockback(z, Math.cos(a), Math.sin(a), PLAYER.meleeKnockback);
     }
   }
@@ -540,6 +665,41 @@ function onPlayerHit(dmg, dirX, dirY) {
     player.y -= dirY * 6;
     popups.push({ x: player.x, y: player.y - 20, text: `-${Math.round(dmg)}`, life: 0.6, age: 0, color: "#ff6b6b" });
     addShake(clamp(dmg * 0.15, 1, 8), 0.12);
+  }
+}
+
+// ---- Environmental hazards (Foundry steam vents) ---------------------------
+function updateHazards(dt) {
+  for (const hz of hazards) {
+    hz.timer -= dt;
+    if (hz.timer <= 0) {
+      hz.timer = hz.cycle;
+      const d = dist(player.x, player.y, hz.x, hz.y);
+      if (d <= hz.radius + player.radius) {
+        const a = angleTo(hz.x, hz.y, player.x, player.y);
+        onPlayerHit(hz.damage, Math.cos(a), Math.sin(a));
+      }
+    }
+  }
+}
+
+function drawHazards() {
+  for (const hz of hazards) {
+    const chargeT = clamp(1 - hz.timer / hz.cycle, 0, 1);
+    ctx.save();
+    ctx.strokeStyle = `rgba(255,120,40,${0.25 + chargeT * 0.35})`;
+    ctx.lineWidth = 2 + chargeT * 2;
+    ctx.beginPath();
+    ctx.arc(hz.x, hz.y, hz.radius * (0.5 + chargeT * 0.5), 0, Math.PI * 2);
+    ctx.stroke();
+    if (chargeT > 0.8) {
+      ctx.globalAlpha = (chargeT - 0.8) * 5 * (0.5 + Math.sin(performance.now() * 0.03) * 0.5);
+      ctx.fillStyle = "rgba(255,150,60,0.35)";
+      ctx.beginPath();
+      ctx.arc(hz.x, hz.y, hz.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 }
 
@@ -651,6 +811,7 @@ function update(dt, now) {
 
   updateAbilities(player, dt, { now, enemies, damageEnemy, arenaBounds: bounds });
   updateBurns(dt, now);
+  updateHazards(dt);
 
   killRewardsAndCleanup();
 
@@ -671,6 +832,10 @@ function update(dt, now) {
   for (let i = muzzleFlashes.length - 1; i >= 0; i--) {
     muzzleFlashes[i].age += dt;
     if (muzzleFlashes[i].age >= muzzleFlashes[i].life) muzzleFlashes.splice(i, 1);
+  }
+  for (let i = railBeams.length - 1; i >= 0; i--) {
+    railBeams[i].age += dt;
+    if (railBeams[i].age >= railBeams[i].life) railBeams.splice(i, 1);
   }
   updateShake(dt);
 
@@ -724,6 +889,7 @@ function render() {
   }
 
   drawArena();
+  drawHazards();
   drawAmbientParticles();
 
   if (!player) {
@@ -735,13 +901,14 @@ function render() {
   drawAbilityVisuals();
   drawFlames();
   drawMuzzleFlashes();
+  drawRailBeams();
   drawProjectiles(friendlyProjectiles);
   drawProjectiles(enemyProjectiles, true);
   drawEnemies();
   drawPlayer();
   drawPopups();
 
-  if (waveManager.wave >= 16) drawFog();
+  if (currentMap.modifiers.fogAlways || waveManager.wave >= 16) drawFog();
   if (player.hp / player.maxHp < 0.3) drawLowHealthVignette();
   ctx.restore();
 }
@@ -800,10 +967,12 @@ function drawPlayer() {
   ctx.fill();
   ctx.restore();
 
+  const col = p.characterColor;
+
   if (p.dashing) {
     for (let i = 1; i <= 3; i++) {
       ctx.globalAlpha = 0.16 * (4 - i);
-      ctx.fillStyle = "#7dd3fc";
+      ctx.fillStyle = col.accent;
       ctx.beginPath();
       ctx.arc(p.x - p.dashDirX * i * 10, p.y - p.dashDirY * i * 10, p.radius * (1 - i * 0.12), 0, Math.PI * 2);
       ctx.fill();
@@ -816,7 +985,7 @@ function drawPlayer() {
   ctx.globalAlpha = flashing ? 0.45 : 1;
 
   const pulse = 1 + Math.sin(elapsed * 3) * 0.04;
-  ctx.strokeStyle = p.dashing ? "rgba(125,211,252,0.5)" : "rgba(78,161,255,0.22)";
+  ctx.strokeStyle = p.dashing ? hexAlpha(col.accent, 0.5) : hexAlpha(col.accent, 0.22);
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(0, 0, p.radius * 1.35 * pulse, 0, Math.PI * 2);
@@ -825,8 +994,8 @@ function drawPlayer() {
   ctx.rotate(p.facing);
 
   const grad = ctx.createRadialGradient(-p.radius * 0.3, -p.radius * 0.3, 1, 0, 0, p.radius);
-  grad.addColorStop(0, p.dashing ? "#bdeeff" : "#a8d4ff");
-  grad.addColorStop(1, p.dashing ? "#4fb8e0" : "#3172c4");
+  grad.addColorStop(0, p.dashing ? shade(col.primary, 0.35) : col.primary);
+  grad.addColorStop(1, p.dashing ? shade(col.accent, -0.1) : col.secondary);
   ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.arc(0, 0, p.radius, 0, Math.PI * 2);
@@ -1171,6 +1340,28 @@ function drawMuzzleFlashes() {
   ctx.restore();
 }
 
+function drawRailBeams() {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (const b of railBeams) {
+    const t = clamp(b.age / b.life, 0, 1);
+    const alpha = 1 - t;
+    ctx.strokeStyle = `rgba(120,190,255,${alpha * 0.7})`;
+    ctx.lineWidth = 9 * (1 - t * 0.6);
+    ctx.beginPath();
+    ctx.moveTo(b.x1, b.y1);
+    ctx.lineTo(b.x2, b.y2);
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(235,248,255,${alpha})`;
+    ctx.lineWidth = 2.5 * (1 - t * 0.4);
+    ctx.beginPath();
+    ctx.moveTo(b.x1, b.y1);
+    ctx.lineTo(b.x2, b.y2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawFlames() {
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
@@ -1485,7 +1676,18 @@ function frame(ts) {
   Input.endFrame();
 
   // Read-only debug snapshot for the browser console / QA tooling.
-  window.__uoDebug = { screen, player, enemies, waveManager, friendlyProjectiles, enemyProjectiles };
+  window.__uoDebug = {
+    screen,
+    player,
+    enemies,
+    waveManager,
+    friendlyProjectiles,
+    enemyProjectiles,
+    hazards,
+    currentMap,
+    selectedCharacterId,
+    selectedMapId,
+  };
 }
 
 requestAnimationFrame(frame);

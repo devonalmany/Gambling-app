@@ -1,8 +1,11 @@
 import { PLAYER, XP } from "./constants.js";
 import { clamp } from "./utils.js";
 import { WEAPON_ORDER, WEAPON_DEFS, emptyUpgrades } from "./weapons.js";
+import { getCharacter } from "./characters.js";
 
-export function createPlayer(canvasW, canvasH) {
+export function createPlayer(canvasW, canvasH, characterId = "rookie") {
+  const character = getCharacter(characterId);
+  const mods = character.statMods;
   const weapons = {};
   for (const id of WEAPON_ORDER) {
     const def = WEAPON_DEFS[id];
@@ -18,13 +21,17 @@ export function createPlayer(canvasW, canvasH) {
     };
   }
 
+  const maxHp = PLAYER.maxHp + (mods.maxHpBonus ?? 0);
+
   return {
     x: canvasW / 2,
     y: canvasH / 2,
     radius: PLAYER.radius,
     facing: 0,
-    hp: PLAYER.maxHp,
-    maxHp: PLAYER.maxHp,
+    hp: maxHp,
+    maxHp,
+    characterId: character.id,
+    characterColor: { primary: character.colorPrimary, secondary: character.colorSecondary, accent: character.accent },
     invulnMs: 0,
     dashCooldownLeft: 0,
     dashing: false,
@@ -49,15 +56,17 @@ export function createPlayer(canvasW, canvasH) {
 
     perks: {
       maxHpBonus: 0,
-      moveSpeedMul: 1,
-      dashCooldownMul: 1,
-      currencyGainMul: 1,
+      moveSpeedMul: 1 + (mods.moveSpeedMul ?? 0),
+      dashCooldownMul: 1 + (mods.dashCooldownMul ?? 0),
+      currencyGainMul: 1 + (mods.currencyGainMul ?? 0),
       regenBonus: 0,
-      pickupRadiusBonus: 0,
-      abilityDamageMul: 1,
-      cooldownReductionMul: 1,
-      xpGainMul: 1,
+      pickupRadiusBonus: mods.pickupRadiusBonus ?? 0,
+      abilityDamageMul: 1 + (mods.abilityDamageMul ?? 0),
+      cooldownReductionMul: 1 + (mods.cooldownReductionMul ?? 0),
+      xpGainMul: 1 + (mods.xpGainMul ?? 0),
       extraAmmoMul: 1,
+      meleeDamageMul: 1 + (mods.meleeDamageMul ?? 0),
+      weaponDamageMul: 1 + (mods.weaponDamageMul ?? 0),
     },
     shopLevels: {},
     autoAim: false,

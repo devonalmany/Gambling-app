@@ -75,14 +75,33 @@
           <div><b>R</b> Reload</div>
           <div><b>Space</b> Dash</div>
           <div><b>E</b> Melee Shove</div>
-          <div><b>1-8</b> Switch Weapon</div>
+          <div><b>1-9</b> Switch Weapon</div>
           <div><b>F</b> Toggle Auto-Fire</div>
           <div><b>Esc</b> Pause</div>
         </div>
-        <button id="startBtn" class="primary-btn">Start Run</button>
+        <button id="startBtn" class="primary-btn">Select Loadout</button>
         <div class="high-scores">
           <h3>Best Runs</h3>
           <ul id="startHighScoreList"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loadout: character + map select -->
+    <div id="loadoutScreen" class="screen hidden">
+      <div class="panel loadout-panel">
+        <h2>Choose Your Loadout</h2>
+        <div class="loadout-section">
+          <h3>Survivor</h3>
+          <div id="characterRow" class="loadout-row"></div>
+        </div>
+        <div class="loadout-section">
+          <h3>Battleground</h3>
+          <div id="mapRow" class="loadout-row"></div>
+        </div>
+        <div class="loadout-actions">
+          <button id="loadoutBackBtn" class="secondary-btn">Back</button>
+          <button id="deployBtn" class="primary-btn">Deploy</button>
         </div>
       </div>
     </div>

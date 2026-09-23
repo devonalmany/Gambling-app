@@ -1,9 +1,9 @@
 # UNDEAD ONSLAUGHT
 
-A top-down 2D zombie survival shooter, browser-based. Fight escalating
-waves, earn scrap to upgrade weapons between waves, and pick auto-triggering
-abilities as you level up mid-fight. There's no win condition — only how
-long you survive.
+A top-down 2D zombie survival shooter, browser-based. Pick a survivor and a
+battleground, fight escalating waves, earn scrap to upgrade weapons between
+waves, and pick auto-triggering abilities as you level up mid-fight. There's
+no win condition — only how long you survive.
 
 No build step, no dependencies. Plain HTML/CSS/JS (ES modules), same as the
 rest of this repo.
@@ -27,26 +27,51 @@ python3 -m http.server 8081
 | R              | Reload              |
 | Space          | Dash                |
 | E              | Melee shove         |
-| 1–8            | Switch weapon       |
+| 1–9            | Switch weapon       |
 | F              | Toggle auto-fire    |
 | Esc            | Pause               |
 
 ## What's implemented
 
+- **Loadout select** — before each run, pick one of **4 survivors** and one
+  of **4 battlegrounds** on a dedicated loadout screen. "Try Again" after
+  death reuses your last loadout instead of sending you back through it.
+- **4 playable characters**, each a real stat trade-off, not a reskin:
+  - **The Rookie** — balanced, +5% XP gain. The default, no-surprises pick.
+  - **The Brawler** — +25 Max HP, +50% melee damage, +10% faster dash
+    cooldown, -8% move speed. Built to trade hits, not run from them.
+  - **The Scout** — +18% move speed, -18% dash cooldown, -15 Max HP. Fast
+    and fragile.
+  - **The Technician** — +30% ability damage, +18% faster ability
+    cooldowns, -12% weapon damage. Leans on auto-abilities over guns.
+  Each has its own body-color scheme carried through every render of the
+  player (idle glow, dash trail, gradient fill).
+- **4 battlegrounds**, each with a distinct painted ground texture *and* a
+  real gameplay modifier (not just a palette swap):
+  - **Wasteland Compound** — the baseline. No modifiers.
+  - **Suburbia Ruins** — +10% currency gain.
+  - **The Boneyard** — permanent fog-of-war vignette from wave 1 (instead
+    of only kicking in at wave 16+), +15% XP gain to compensate.
+  - **The Foundry** — +15% currency gain, but three fixed steam-vent
+    hazards periodically pulse AOE damage (telegraphed by a brightening
+    warning ring) if you're standing on one when it erupts.
 - **Core loop** — waves spawn from the arena edges and converge on the
   player; clearing a wave opens a between-wave shop, then the next (larger,
   faster, tougher) wave begins. Health regenerates slowly; a dash gives a
   short burst of invulnerability to escape being surrounded.
-- **8 weapons** — Pistol (infinite ammo, starting weapon), Shotgun, SMG,
+- **9 weapons** — Pistol (infinite ammo, starting weapon), Shotgun, SMG,
   Assault Rifle, Sniper Rifle, Flamethrower (cone tick damage that also
   ignites zombies for ~2s of lingering burn damage after you stop firing),
-  Grenade Launcher (arcing AOE), and Minigun (spins up tighter accuracy the
-  longer you hold the trigger). All but the Pistol are locked until bought
-  in the shop. Hold the mouse to fire, or press **F** to toggle Auto-Fire
-  and keep the trigger held automatically whenever zombies are on the field.
+  Grenade Launcher (arcing AOE), Minigun (spins up tighter accuracy the
+  longer you hold the trigger), and **Railgun** (an instant hitscan beam
+  that pierces every zombie standing in its line, each rolling its own
+  crit independently). All but the Pistol are locked until bought in the
+  shop. Hold the mouse to fire, or press **F** to toggle Auto-Fire and keep
+  the trigger held automatically whenever zombies are on the field.
 - **Weapon upgrade tracks** — per-weapon Damage, Fire Rate, Reload Speed,
   Magazine Size, Crit Chance, Piercing, and Explosive Rounds, each with
-  independent levels and scaling cost.
+  independent levels and scaling cost (tracks that don't apply to a given
+  weapon's firing mode, like Piercing on the Flamethrower, are hidden).
 - **6 auto-triggering abilities** — Orbiting Blades, Homing Shards, Static
   Field (damage aura), Landmine Drop, Chain Lightning, and Shockwave Stomp.
   Offered on level-up alongside passive stat cards; each levels 1–5 with
@@ -67,8 +92,10 @@ python3 -m http.server 8081
   bonuses, instant XP on kill. Runs are saved to a local high-score list
   (rounds survived, kills, time alive) via `localStorage` — no backend.
 - **Feel** — hit flashes, floating damage numbers, knockback, crit callouts,
-  a fog vignette that closes in from wave 16 on, and brief invulnerability
-  after taking a hit so one bad surround doesn't insta-kill you.
+  a muzzle flash on every shot, screen shake scaled to damage taken and
+  explosions, a fog vignette that closes in from wave 16 on (or from wave 1
+  on the Boneyard), and brief invulnerability after taking a hit so one bad
+  surround doesn't insta-kill you.
 
 ## Known simplifications
 
@@ -91,6 +118,13 @@ Not yet implemented:
   literal hit-zone collision.
 - No sprite art — flat vector shapes (circles/simple polygons), by design,
   so many on-screen zombies stay readable at once.
+- **Maps are the same arena, re-dressed.** All four battlegrounds are the
+  same rectangular canvas with a different painted ground texture,
+  currency/XP modifier, and (Foundry only) a few hazard zones — not
+  separate layouts, geometry, or spawn patterns. Foundry's steam vents are
+  visual + a damage trigger; they don't block movement or line of sight.
+- Character passives are the only difference between survivors — everyone
+  still starts with the same Pistol and faces the same shop.
 
 ## Project layout
 
@@ -98,6 +132,8 @@ Not yet implemented:
 index.html / styles.css     shell + HUD/menu DOM
 js/main.js                  game loop, input → world → render orchestration
 js/constants.js             tunable balance numbers
+js/characters.js             the 4 playable characters + stat mods
+js/maps.js                   the 4 battlegrounds + modifiers/hazards
 js/player.js                player state, movement, dash, XP/leveling
 js/weapons.js                weapon defs + upgrade-track math
 js/enemies.js                zombie type defs, spawning, AI

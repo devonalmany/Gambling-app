@@ -473,6 +473,114 @@ h3 {
   letter-spacing: 0.03em;
 }
 
+/* ---------- Loadout (character + map select) ---------- */
+.loadout-panel {
+  max-width: 900px;
+}
+.loadout-panel h2 {
+  text-align: center;
+  font-size: 30px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.loadout-section h3 {
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+  margin: 18px 0 10px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+}
+.loadout-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.loadout-card {
+  --accent: #7fbf4a;
+  position: relative;
+  background: #10150e;
+  border: 2px solid var(--line);
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  padding: 12px 10px;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--font-body);
+  transition: transform 0.1s ease, border-color 0.12s ease;
+}
+.loadout-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+.loadout-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 0 18px -4px var(--accent);
+  background: #141c11;
+}
+.loadout-swatch {
+  width: 100%;
+  aspect-ratio: 1.6;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  color: rgba(0, 0, 0, 0.55);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
+.loadout-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: 0.02em;
+}
+.loadout-tagline {
+  font-size: 11.5px;
+  color: var(--ink-dim);
+  line-height: 1.35;
+  min-height: 30px;
+}
+.loadout-passives {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 11px;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.loadout-passives li::before {
+  content: "▸ ";
+  color: var(--accent);
+}
+.loadout-modifier {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--signal);
+}
+.loadout-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+}
+.loadout-actions .primary-btn,
+.loadout-actions .secondary-btn {
+  margin-top: 0;
+}
+
+@media (max-width: 640px) {
+  .loadout-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 .primary-btn,
 .secondary-btn {
   display: block;

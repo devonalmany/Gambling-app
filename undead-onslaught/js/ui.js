@@ -5,6 +5,8 @@
 import { WEAPON_ORDER, WEAPON_DEFS, UPGRADE_TRACKS, upgradeCost } from "./weapons.js";
 import { SHOP_PERKS, perkCost } from "./shop.js";
 import { ABILITY_DEFS, abilityLevelStats } from "./abilities.js";
+import { CHARACTER_DEFS } from "./characters.js";
+import { MAP_DEFS } from "./maps.js";
 import { fmtTime, clamp } from "./utils.js";
 
 const el = (id) => document.getElementById(id);
@@ -16,6 +18,41 @@ export function showScreen(id) {
 
 export function setHudVisible(visible) {
   el("hud").classList.toggle("hidden", !visible);
+}
+
+export function renderLoadoutScreen(selection, handlers) {
+  const charRow = el("characterRow");
+  charRow.innerHTML = "";
+  for (const c of CHARACTER_DEFS) {
+    const card = document.createElement("button");
+    card.className = "loadout-card" + (c.id === selection.characterId ? " selected" : "");
+    card.style.setProperty("--accent", c.accent);
+    card.innerHTML = `
+      <div class="loadout-swatch" style="background:linear-gradient(135deg, ${c.colorPrimary}, ${c.colorSecondary})">${c.icon}</div>
+      <div class="loadout-name">${c.name}</div>
+      <div class="loadout-tagline">${c.tagline}</div>
+      <ul class="loadout-passives">${c.passives.map((p) => `<li>${p}</li>`).join("")}</ul>
+    `;
+    card.addEventListener("click", () => handlers.onSelectCharacter(c.id));
+    charRow.appendChild(card);
+  }
+
+  const mapRow = el("mapRow");
+  mapRow.innerHTML = "";
+  for (const m of MAP_DEFS) {
+    const [c1, c2, c3] = m.palette.base;
+    const card = document.createElement("button");
+    card.className = "loadout-card" + (m.id === selection.mapId ? " selected" : "");
+    card.style.setProperty("--accent", "#8fe13f");
+    card.innerHTML = `
+      <div class="loadout-swatch map-swatch" style="background:linear-gradient(135deg, ${c1}, ${c2} 55%, ${c3})">${m.icon}</div>
+      <div class="loadout-name">${m.name}</div>
+      <div class="loadout-tagline">${m.tagline}</div>
+      <div class="loadout-modifier">${m.modifierLabel}</div>
+    `;
+    card.addEventListener("click", () => handlers.onSelectMap(m.id));
+    mapRow.appendChild(card);
+  }
 }
 
 export function updateHud(player, wave, elapsed) {
@@ -177,6 +214,7 @@ export function renderShop(player, wave, handlers) {
 function visibleTracks(def) {
   if (def.mode === "cone") return UPGRADE_TRACKS.filter((t) => t.id !== "pierce" && t.id !== "explosive");
   if (def.mode === "lob") return UPGRADE_TRACKS.filter((t) => t.id !== "pierce");
+  if (def.mode === "beam") return UPGRADE_TRACKS.filter((t) => t.id !== "pierce" && t.id !== "explosive");
   return UPGRADE_TRACKS;
 }
 

@@ -146,6 +146,21 @@ export const WEAPON_DEFS = {
     spinUpTime: 0.6,
     critChance: 0.05,
   },
+  railgun: {
+    id: "railgun",
+    name: "Railgun",
+    key: "Digit9",
+    unlockCost: 450,
+    mode: "beam", // instant piercing hitscan line, see main.js fireRailgun()
+    damage: 65,
+    fireRate: 0.8,
+    magSize: 4,
+    reserveMax: 28,
+    reloadTime: 2.8,
+    range: 1400,
+    beamWidth: 7,
+    critChance: 0.15,
+  },
 };
 
 export const WEAPON_ORDER = [
@@ -157,6 +172,7 @@ export const WEAPON_ORDER = [
   "flamethrower",
   "grenadeLauncher",
   "minigun",
+  "railgun",
 ];
 
 export function emptyUpgrades() {
