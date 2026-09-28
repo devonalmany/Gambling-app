@@ -1,0 +1,420 @@
+<title>Ser, Estar y Emociones</title>
+<meta name="description" content="Study guide for Honores III: los estados emocionales, ser vs. estar, and adjectives that change meaning.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Caveat:wght@600&display=swap">
+<style>
+:root{
+  --bg:#EEF2F8;          /* notebook-paper blue */
+  --surface:#FFFFFF;
+  --ink:#1B2238;
+  --muted:#5A6482;
+  --rule:#C9D3E6;
+  --ser:#3B44A8;         /* ser = indigo, permanent ink */
+  --ser-soft:#E3E5F8;
+  --estar:#D9523F;       /* estar = the coral of the vocab handout */
+  --estar-soft:#FBE1DC;
+  --good:#1E8A5A;
+  --bad:#C0392B;
+  --pen:#23307A;
+  --shadow:0 1px 2px rgba(27,34,56,.06),0 4px 14px rgba(27,34,56,.06);
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;
+  --hand:"Caveat","Comic Sans MS",cursive;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#12162A;--surface:#1B2140;--ink:#E7EAF6;--muted:#9AA3C4;--rule:#2F3761;
+    --ser:#9CA5FF;--ser-soft:#262C5E;--estar:#FF8C78;--estar-soft:#4A2522;
+    --good:#4FD18F;--bad:#FF7A6B;--pen:#B7C0FF;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#12162A;--surface:#1B2140;--ink:#E7EAF6;--muted:#9AA3C4;--rule:#2F3761;
+  --ser:#9CA5FF;--ser-soft:#262C5E;--estar:#FF8C78;--estar-soft:#4A2522;
+  --good:#4FD18F;--bad:#FF7A6B;--pen:#B7C0FF;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;
+  padding-inline:16px;padding-block:0 64px;
+  background-image:repeating-linear-gradient(to bottom,transparent 0 31px,color-mix(in srgb,var(--rule) 45%,transparent) 31px 32px);
+}
+.wrap{max-width:980px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.1;margin:0}
+p{margin:0}
+.ser{color:var(--ser)} .estar{color:var(--estar)}
+.hand{font-family:var(--hand);color:var(--pen);font-size:1.35em;line-height:1}
+
+/* header */
+header{padding-block:40px 20px;display:grid;gap:10px}
+.eyebrow{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+h1{font-size:clamp(40px,8vw,76px);font-weight:800;letter-spacing:-.02em}
+h1 .y{font-family:var(--hand);font-weight:600;color:var(--muted);font-size:.7em;padding-inline:.12em}
+.lede{max-width:62ch;color:var(--muted)}
+
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px;margin-bottom:8px;border-bottom:1px solid var(--rule)}
+nav .row{display:flex;gap:8px;flex-wrap:wrap}
+nav a{font-weight:700;font-size:14px;text-decoration:none;color:var(--ink);padding:6px 12px;border-radius:999px;border:1px solid var(--rule);background:var(--surface)}
+nav a:hover,nav a:focus-visible{border-color:var(--ink)}
+a:focus-visible,button:focus-visible{outline:3px solid var(--ser);outline-offset:2px}
+
+section{padding-block:40px 8px;display:grid;gap:18px;scroll-margin-top:64px}
+h2{font-size:clamp(28px,5vw,40px);font-weight:700}
+.sub{color:var(--muted);max-width:65ch}
+
+/* flashcards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.card{perspective:900px;border:0;padding:0;background:none;cursor:pointer;text-align:left;font:inherit;color:inherit;min-height:210px}
+.card .inner{position:relative;width:100%;height:100%;min-height:210px;transition:transform .45s;transform-style:preserve-3d}
+.card[aria-pressed="true"] .inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow)}
+.front{background:var(--estar-soft);border:1px solid color-mix(in srgb,var(--estar) 30%,transparent)}
+.back{background:var(--surface);transform:rotateY(180deg);border:1px solid var(--rule)}
+.front .es{font-family:var(--display);font-weight:700;font-size:26px;margin-top:auto}
+.front .forms{font-size:13px;color:var(--muted)}
+.front .tap{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.back .en{font-weight:700;font-size:18px}
+.back .ex{font-size:15px}
+.back .ex b{color:var(--estar)}
+.back .tr{font-size:13px;color:var(--muted);font-style:italic}
+.back .warn{font-size:12.5px;color:var(--bad);margin-top:auto}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:700;font-size:14px;padding:8px 14px;border-radius:8px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+.callout{background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--estar);border-radius:6px;padding:14px 16px;max-width:70ch}
+
+/* conjugation */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:720px){.split{grid-template-columns:1fr}}
+.panel{background:var(--surface);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:grid;gap:14px;align-content:start;border-top:6px solid var(--c)}
+.panel.s{--c:var(--ser)} .panel.e{--c:var(--estar)}
+.panel h3{font-size:30px;color:var(--c)}
+.panel .tag{font-size:14px;color:var(--muted)}
+table.conj{width:100%;border-collapse:collapse;font-size:16px}
+table.conj td{padding:6px 4px;border-bottom:1px dashed var(--rule)}
+table.conj td:nth-child(2),table.conj td:nth-child(4){font-weight:700;color:var(--c)}
+table.conj td:nth-child(1),table.conj td:nth-child(3){color:var(--muted);font-size:14px}
+.acro{display:grid;gap:8px}
+.use{display:grid;grid-template-columns:40px 1fr;gap:10px;align-items:start}
+.use .L{font-family:var(--display);font-weight:800;font-size:28px;color:var(--c);line-height:1;text-align:center;padding-top:2px}
+.use .name{font-weight:700}
+.use .ex{font-size:15px}
+.use .ex b{color:var(--c)}
+.use .tr{font-size:13px;color:var(--muted);font-style:italic}
+.use.extra .L{font-size:20px}
+
+.trap{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.trap{grid-template-columns:1fr}}
+.trap div{background:var(--surface);border-radius:10px;padding:14px 16px;border:1px solid var(--rule)}
+.trap .k{font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+
+/* meaning-change table */
+.tablewrap{overflow-x:auto;background:var(--surface);border-radius:12px;box-shadow:var(--shadow)}
+table.mc{width:100%;border-collapse:collapse;min-width:560px}
+table.mc th,table.mc td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--rule);vertical-align:top}
+table.mc th{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+table.mc th.s{color:var(--ser)} table.mc th.e{color:var(--estar)}
+table.mc td:first-child{font-family:var(--display);font-weight:700;font-size:19px}
+table.mc td.s{background:color-mix(in srgb,var(--ser-soft) 55%,transparent)}
+table.mc td.e{background:color-mix(in srgb,var(--estar-soft) 55%,transparent)}
+table.mc .m{font-weight:700}
+table.mc .x{font-size:14px;color:var(--muted)}
+table.mc tr:last-child td{border-bottom:0}
+.fix{font-family:var(--hand);color:var(--bad);font-size:20px;line-height:1.1;display:block;margin-top:4px}
+
+/* quiz */
+.quiz{background:var(--surface);border-radius:14px;box-shadow:var(--shadow);padding:22px;display:grid;gap:16px;max-width:760px}
+.modes{display:flex;gap:6px;flex-wrap:wrap}
+.modes button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.score{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted);font-weight:700;align-self:center}
+.qtext{font-family:var(--display);font-size:clamp(22px,4vw,30px);font-weight:500;line-height:1.25}
+.qtext .blank{display:inline-block;min-width:3.2em;border-bottom:3px solid var(--ink);text-align:center;font-weight:800}
+.qhint{color:var(--muted);font-size:15px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.opt{font:inherit;font-size:18px;font-weight:700;padding:14px;border-radius:10px;border:2px solid var(--rule);background:var(--bg);color:var(--ink);cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--ink)}
+.opt.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--surface))}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--surface))}
+.opt:disabled{cursor:default}
+.feedback{min-height:48px;font-size:16px}
+.feedback .ok{color:var(--good);font-weight:700}
+.feedback .no{color:var(--bad);font-weight:700}
+.qfoot{display:flex;justify-content:flex-end}
+footer{margin-top:48px;color:var(--muted);font-size:14px}
+@media (prefers-reduced-motion:reduce){.card .inner{transition:none}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Sr. Ribeiro · Honores III · Apuntes 1.2</div>
+  <h1><span class="ser">Ser</span><span class="y">y</span><span class="estar">Estar</span></h1>
+  <p class="lede">Study guide for <strong>Los estados emocionales</strong> from the Vocabulario 1 handout, plus the ser/estar notes: forms, uses, and the adjectives that change meaning. <span class="ser">Indigo</span> means ser, <span class="estar">coral</span> means estar, all the way down.</p>
+</header>
+
+<nav aria-label="Sections"><div class="row">
+  <a href="#emociones">Emociones</a>
+  <a href="#formas">Formas y usos</a>
+  <a href="#cambian">Cambian de sentido</a>
+  <a href="#practica">Práctica</a>
+</div></nav>
+
+<!-- EMOCIONES -->
+<section id="emociones">
+  <h2>Los estados emocionales</h2>
+  <p class="sub">Tap a card to flip it. Every one of these takes <strong class="estar">estar</strong>, because emotions are the E in PLACE. The adjective has to match the person: <em>-o</em> for masculine, <em>-a</em> for feminine, add <em>-s</em> for plural.</p>
+  <div class="toolbar">
+    <button class="btn" id="flipAll" type="button">Flip all</button>
+    <button class="btn" id="shuffle" type="button">Shuffle</button>
+  </div>
+  <div class="cards" id="cards"></div>
+  <div class="callout">
+    <strong>Bonus from Los sentimientos:</strong> <span class="estar"><strong>estar harto/a (de)</strong></span> = to be fed up (with); to be sick (of).
+    <br><span class="tr" style="color:var(--muted);font-style:italic">Estoy harto de la tarea. (I'm fed up with homework.)</span>
+  </div>
+</section>
+
+<!-- FORMAS Y USOS -->
+<section id="formas">
+  <h2>Formas y usos</h2>
+  <p class="sub">Your notes spell two classic memory words. The uses of ser make <strong class="ser">DOCTOR</strong>. The uses of estar make <strong class="estar">PLACE</strong>.</p>
+  <div class="split">
+    <div class="panel s">
+      <div><h3>Ser</h3><p class="tag">What something <em>is</em>: identity, traits, facts that don't change.</p></div>
+      <table class="conj"><tbody>
+        <tr><td>yo</td><td>soy</td><td>nosotros</td><td>somos</td></tr>
+        <tr><td>tú</td><td>eres</td><td>vosotros</td><td>sois</td></tr>
+        <tr><td>él/ella/Ud.</td><td>es</td><td>ellos/Uds.</td><td>son</td></tr>
+      </tbody></table>
+      <div class="acro" id="serUses"></div>
+    </div>
+    <div class="panel e">
+      <div><h3>Estar</h3><p class="tag">How or where something <em>is</em>: states that can change.</p></div>
+      <table class="conj"><tbody>
+        <tr><td>yo</td><td>estoy</td><td>nosotros</td><td>estamos</td></tr>
+        <tr><td>tú</td><td>estás</td><td>vosotros</td><td>estáis</td></tr>
+        <tr><td>él/ella/Ud.</td><td>está</td><td>ellos/Uds.</td><td>están</td></tr>
+      </tbody></table>
+      <p class="hand" style="font-size:22px">accents on estás, está, estáis, están</p>
+      <div class="acro" id="estarUses"></div>
+    </div>
+  </div>
+  <h3 style="font-size:22px;margin-top:8px">The location trap</h3>
+  <div class="trap">
+    <div><p class="k ser">Event → ser</p><p>La fiesta <strong class="ser">es</strong> en mi casa.</p><p class="qhint">Where an event takes place.</p></div>
+    <div><p class="k estar">Person or thing → estar</p><p>Mi casa <strong class="estar">está</strong> en Miami.</p><p class="qhint">Where someone or something is.</p></div>
+  </div>
+</section>
+
+<!-- CAMBIAN -->
+<section id="cambian">
+  <h2>Adjectives that change meaning</h2>
+  <p class="sub">Apuntes #2. Same adjective, different verb, different meaning. With ser it describes what someone or something is like. With estar it describes a state right now.</p>
+  <div class="tablewrap">
+    <table class="mc">
+      <thead><tr><th>Adjetivo</th><th class="s">Ser +</th><th class="e">Estar +</th></tr></thead>
+      <tbody id="mcBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- PRACTICA -->
+<section id="practica">
+  <h2>Práctica</h2>
+  <p class="sub">Pick a mode. Each answer shows which DOCTOR or PLACE use it is.</p>
+  <div class="quiz">
+    <div class="modes" role="group" aria-label="Quiz mode">
+      <button class="btn" type="button" data-mode="se" aria-pressed="true">Ser o estar</button>
+      <button class="btn" type="button" data-mode="vocab" aria-pressed="false">Emociones</button>
+      <button class="btn" type="button" data-mode="mc" aria-pressed="false">Cambian de sentido</button>
+      <span class="score" id="score">0 / 0</span>
+    </div>
+    <p class="qtext" id="qtext"></p>
+    <p class="qhint" id="qhint"></p>
+    <div class="opts" id="opts"></div>
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+    <div class="qfoot"><button class="btn" type="button" id="next">Siguiente →</button></div>
+  </div>
+</section>
+
+<footer>Built from Marlon's notes: Vocabulario 1, Apuntes Ser y Estar (1.2), and Apuntes #2.</footer>
+</div>
+
+<script>
+const EMO = [
+  {es:"agobiado/a", en:"overwhelmed", ex:"<b>Estoy</b> agobiada con tanta tarea.", tr:"I'm overwhelmed with so much homework."},
+  {es:"ansioso/a", en:"anxious", ex:"Marlon <b>está</b> ansioso antes del examen.", tr:"Marlon is anxious before the test."},
+  {es:"deprimido/a", en:"depressed", ex:"<b>Estamos</b> deprimidos porque terminaron las vacaciones.", tr:"We're depressed because vacation ended."},
+  {es:"disgustado/a", en:"upset", ex:"¿Por qué <b>estás</b> disgustado?", tr:"Why are you upset?", warn:"False friend: it means upset, not disgusted."},
+  {es:"emocionado/a", en:"excited", ex:"Los estudiantes <b>están</b> emocionados por el viaje.", tr:"The students are excited about the trip."},
+  {es:"preocupado/a (por)", en:"worried (about)", ex:"Mis padres <b>están</b> preocupados por mis notas.", tr:"My parents are worried about my grades.", warn:"Use por before the thing you worry about."},
+  {es:"solo/a", en:"alone; lonely", ex:"El perro <b>está</b> solo en casa.", tr:"The dog is alone at home."},
+  {es:"tranquilo/a", en:"calm", ex:"<b>Estoy</b> tranquila después de la clase de yoga.", tr:"I'm calm after yoga class."},
+];
+const SER_USES = [
+  {L:"D", name:"Description", ex:"La profesora <b>es</b> alta y simpática.", tr:"The teacher is tall and nice."},
+  {L:"O", name:"Occupation", ex:"El Sr. Ribeiro <b>es</b> profesor de español.", tr:"Mr. Ribeiro is a Spanish teacher."},
+  {L:"C", name:"Characteristics (personality)", ex:"Mi hermano <b>es</b> tímido y cariñoso.", tr:"My brother is shy and affectionate."},
+  {L:"T", name:"Time & date", ex:"<b>Son</b> las tres. Hoy <b>es</b> lunes.", tr:"It's three o'clock. Today is Monday."},
+  {L:"O", name:"Origin", ex:"<b>Somos</b> de Colombia.", tr:"We are from Colombia."},
+  {L:"R", name:"Relationships", ex:"Marlon <b>es</b> mi mejor amigo.", tr:"Marlon is my best friend."},
+  {L:"+", name:"Where & when an event takes place", ex:"El concierto <b>es</b> en el parque a las ocho.", tr:"The concert is in the park at eight.", extra:true},
+];
+const ESTAR_USES = [
+  {L:"P", name:"Position", ex:"El gato <b>está</b> sentado en la silla.", tr:"The cat is sitting on the chair."},
+  {L:"L", name:"Location", ex:"La biblioteca <b>está</b> al lado del gimnasio.", tr:"The library is next to the gym."},
+  {L:"A", name:"Actions in progress (-ando / -iendo)", ex:"<b>Estamos</b> estudiando para el examen.", tr:"We are studying for the test."},
+  {L:"C", name:"Conditions", ex:"La sopa <b>está</b> fría. <b>Estoy</b> enfermo.", tr:"The soup is cold. I'm sick."},
+  {L:"E", name:"Emotions", ex:"<b>Estoy</b> emocionada por el fin de semana.", tr:"I'm excited for the weekend."},
+];
+const MC = [
+  {a:"aburrido/a", s:"boring", sx:"La clase de historia es aburrida.", e:"bored", ex:"Estoy aburrido en la clase."},
+  {a:"listo/a", s:"smart, clever", sx:"Mi hermana es muy lista.", e:"ready", ex:"¿Estás lista? Vamos."},
+  {a:"rico/a", s:"rich", sx:"Ese actor es rico.", e:"delicious (food)", ex:"La pizza está rica."},
+  {a:"malo/a", s:"bad (personality)", sx:"El villano es malo.", e:"sick; ill", ex:"Hoy estoy malo, no voy a clase."},
+  {a:"seguro/a", s:"safe (a place); confident (a person)", sx:"El barrio es seguro.", e:"sure, certain", ex:"Estoy seguro de la respuesta.", fix:"heads up: your notes have these swapped. Estar seguro = sure."},
+  {a:"verde", s:"green (color)", sx:"Las hojas son verdes.", e:"not ripe", ex:"Los plátanos están verdes."},
+  {a:"vivo/a", s:"lively, sharp, quick-witted", sx:"Ese niño es muy vivo.", e:"alive", ex:"La planta todavía está viva."},
+  {a:"libre", s:"free (by nature, not controlled)", sx:"Los pájaros son libres.", e:"available, not busy", ex:"¿Estás libre el sábado?"},
+];
+
+/* ---------- flashcards ---------- */
+const cardsEl = document.getElementById("cards");
+function renderCards(list){
+  cardsEl.innerHTML = list.map((v,i)=>{
+    const [m] = v.es.split(" ");
+    const base = m.replace("/a","");
+    const forms = base.endsWith("o") ? `${base} · ${base.slice(0,-1)}a · ${base}s · ${base.slice(0,-1)}as` : "";
+    return `<button type="button" class="card" aria-pressed="false" aria-label="${v.es}. Flip to see meaning.">
+      <div class="inner">
+        <div class="face front"><span class="tap">estar +</span><span class="es">${v.es}</span><span class="forms">${forms}</span></div>
+        <div class="face back"><span class="en">${v.en}</span><span class="ex">${v.ex}</span><span class="tr">${v.tr}</span>${v.warn?`<span class="warn">${v.warn}</span>`:""}</div>
+      </div></button>`;
+  }).join("");
+}
+renderCards(EMO);
+cardsEl.addEventListener("click", e=>{
+  const c = e.target.closest(".card"); if(!c) return;
+  c.setAttribute("aria-pressed", c.getAttribute("aria-pressed")==="true" ? "false" : "true");
+});
+let allFlipped = false;
+document.getElementById("flipAll").onclick = ()=>{
+  allFlipped = !allFlipped;
+  cardsEl.querySelectorAll(".card").forEach(c=>c.setAttribute("aria-pressed", String(allFlipped)));
+};
+document.getElementById("shuffle").onclick = ()=>{ allFlipped=false; renderCards(shuffle([...EMO])); };
+
+/* ---------- uses ---------- */
+const useHTML = u => `<div class="use${u.extra?" extra":""}"><span class="L">${u.L}</span><div><div class="name">${u.name}</div><div class="ex">${u.ex}</div><div class="tr">${u.tr}</div></div></div>`;
+document.getElementById("serUses").innerHTML = SER_USES.map(useHTML).join("");
+document.getElementById("estarUses").innerHTML = ESTAR_USES.map(useHTML).join("");
+
+/* ---------- meaning change table ---------- */
+document.getElementById("mcBody").innerHTML = MC.map(r=>`<tr>
+  <td>${r.a}</td>
+  <td class="s"><div class="m">${r.s}</div><div class="x">${r.sx}</div></td>
+  <td class="e"><div class="m">${r.e}</div><div class="x">${r.ex}</div>${r.fix?`<span class="fix">${r.fix}</span>`:""}</td>
+</tr>`).join("");
+
+/* ---------- quiz ---------- */
+const SER = {yo:"soy",tú:"eres",él:"es",nos:"somos",ellos:"son"};
+const EST = {yo:"estoy",tú:"estás",él:"está",nos:"estamos",ellos:"están"};
+// [before, after, person, verb, reason]
+const SE_BANK = [
+  ["Yo","muy ansiosa antes de los exámenes.","yo","estar","E · Emotion"],
+  ["Mi mamá","doctora.","él","ser","O · Occupation"],
+  ["Nosotros","de Puerto Rico.","nos","ser","O · Origin"],
+  ["¿Tú","preocupado por la clase?","tú","estar","E · Emotion"],
+  ["Hoy","el 28 de septiembre.","él","ser","T · Date"],
+  ["El libro","encima de la mesa.","él","estar","L · Location"],
+  ["Ellos","mis primos.","ellos","ser","R · Relationship"],
+  ["Los chicos","jugando al fútbol.","ellos","estar","A · Action in progress"],
+  ["La fiesta","en la casa de Marlon.","él","ser","Event location → ser"],
+  ["Yo","agobiado con tanta tarea.","yo","estar","E · Emotion"],
+  ["Mi abuelo","cuidadoso y tradicional.","él","ser","C · Characteristics"],
+  ["La puerta","abierta.","él","estar","C · Condition"],
+  ["Tú","alto y moreno.","tú","ser","D · Description"],
+  ["Nosotros","sentados en el sofá.","nos","estar","P · Position"],
+  ["","las dos y media.","ellos","ser","T · Time"],
+  ["Mis amigos","emocionados por el partido.","ellos","estar","E · Emotion"],
+  ["El café","frío.","él","estar","C · Condition"],
+  ["¿Dónde","el baño?","él","estar","L · Location"],
+  ["Tú","muy celoso.","tú","ser","C · Characteristics (personality)"],
+  ["Nosotros","tranquilos ahora.","nos","estar","E · Emotion"],
+];
+const PRON = {yo:"yo",tú:"tú",él:"él/ella",nos:"nosotros",ellos:"ellos"};
+
+let mode = "se", right = 0, total = 0, answered = false, deck = [];
+const $ = id => document.getElementById(id);
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function draw(){ if(!deck.length) deck = shuffle(makeDeck()); return deck.pop(); }
+function makeDeck(){
+  if(mode==="se") return SE_BANK.map(q=>({type:"se",q}));
+  if(mode==="vocab") return EMO.flatMap(v=>[{type:"en2es",v},{type:"es2en",v}]);
+  return MC.flatMap(r=>[{type:"mc",r,verb:"ser"},{type:"mc",r,verb:"estar"}]);
+}
+
+function ask(){
+  answered = false;
+  const item = draw();
+  $("feedback").innerHTML = "";
+  let text, hint, options, correct, explain;
+  if(item.type==="se"){
+    const [b,a,p,verb,reason] = item.q;
+    correct = verb==="ser" ? SER[p] : EST[p];
+    options = shuffle([SER[p], EST[p]]);
+    text = `${b} <span class="blank">___</span> ${a}`.trim();
+    hint = `Subject: ${PRON[p]}. Ser or estar?`;
+    explain = `<strong class="${verb}">${verb}</strong> → ${reason}`;
+  } else if(item.type==="en2es"){
+    const v=item.v; correct=v.es;
+    options = shuffle([v.es, ...shuffle(EMO.filter(x=>x!==v)).slice(0,3).map(x=>x.es)]);
+    text = `How do you say “<strong>${v.en}</strong>”?`;
+    hint = "Pick the Spanish adjective.";
+    explain = `${v.ex}<br><span style="color:var(--muted)">${v.tr}</span>`;
+  } else if(item.type==="es2en"){
+    const v=item.v; correct=v.en;
+    options = shuffle([v.en, ...shuffle(EMO.filter(x=>x!==v)).slice(0,3).map(x=>x.en)]);
+    text = `¿Qué significa “<strong>${v.es}</strong>”?`;
+    hint = "Pick the English meaning.";
+    explain = `${v.ex}<br><span style="color:var(--muted)">${v.tr}</span>${v.warn?`<br>${v.warn}`:""}`;
+  } else {
+    const r=item.r, verb=item.verb;
+    correct = verb==="ser" ? r.s : r.e;
+    const others = shuffle(MC.filter(x=>x!==r).map(x=> verb==="ser"?x.s:x.e)).slice(0,2);
+    options = shuffle([correct, verb==="ser"?r.e:r.s, ...others]);
+    text = `<strong class="${verb}">${verb}</strong> ${r.a}`;
+    hint = "What does it mean with this verb?";
+    explain = verb==="ser" ? r.sx : r.ex;
+  }
+  $("qtext").innerHTML = text;
+  $("qhint").textContent = hint;
+  $("opts").innerHTML = options.map(o=>`<button class="opt" type="button">${o}</button>`).join("");
+  $("opts").querySelectorAll(".opt").forEach(btn=>{
+    btn.onclick = ()=>{
+      if(answered) return; answered = true; total++;
+      const ok = btn.textContent===correct;
+      if(ok) right++;
+      $("opts").querySelectorAll(".opt").forEach(x=>{
+        x.disabled = true;
+        if(x.textContent===correct) x.classList.add("right");
+      });
+      if(!ok) btn.classList.add("wrong");
+      if(item.type==="se") $("qtext").innerHTML = $("qtext").innerHTML.replace("___", correct);
+      $("feedback").innerHTML = `<span class="${ok?"ok":"no"}">${ok?"¡Correcto!":"Casi. The answer is "+correct+"."}</span> ${explain}`;
+      $("score").textContent = `${right} / ${total}`;
+    };
+  });
+}
+document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("[data-mode]").forEach(x=>x.setAttribute("aria-pressed", String(x===b)));
+  mode = b.dataset.mode; deck = []; right = 0; total = 0; $("score").textContent="0 / 0"; ask();
+});
+$("next").onclick = ask;
+ask();
+</script>
